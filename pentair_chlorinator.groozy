@@ -14,7 +14,8 @@
 metadata {
 	definition (name: "Pentair Chlorinator", 
             namespace: "bsileo", 
-            author: "Brad Sileo") {
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_chlorinator.groovy') {
 		capability "Refresh"
         capability "Switch"
 		attribute "saltPPM", "string"

@@ -9,7 +9,10 @@
  *  Date: 2018-10-21
  */
 metadata {
-	definition (name: "Pentair Intellibrite Color Light Mode", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Intellibrite Color Light Mode",
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_intellibrite_coilor_light_mode.groovy') {
 		capability "Momentary"
 	}
 }

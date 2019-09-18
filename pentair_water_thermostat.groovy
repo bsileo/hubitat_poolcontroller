@@ -12,7 +12,10 @@
  */
 
 metadata {
-	definition (name: "Pentair Water Thermostat", namespace: "bsileo", author: "Brad Sileo") {		
+	definition (name: "Pentair Water Thermostat", 
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_water_thermostat.groovy') {		
 		capability "Temperature Measurement"		
 		capability "Refresh"		
         capability "Switch"

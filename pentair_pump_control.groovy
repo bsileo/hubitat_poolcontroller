@@ -6,7 +6,10 @@
  *  Date: 2019-09-18
  */
 metadata {
-	definition (name: "Pentair Pump Control", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Pump Control", 
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pump_control.groovy') {
 	    capability "Switch"
         capability "Switch Level"
         capability "Power Meter"

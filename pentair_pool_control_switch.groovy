@@ -9,7 +9,10 @@
  *  Date: 2018-10-21
  */
 metadata {
-	definition (name: "Pentair Pool Control Switch", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Pool Control Switch", 
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_control_switch.groovy') {
 		capability "Switch"
         command "onConfirmed"
         command "offConfirmed"

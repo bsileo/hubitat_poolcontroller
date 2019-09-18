@@ -6,7 +6,10 @@
  *
  */
 metadata {
-	definition (name: "Pentair Spa Pump Control", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Spa Pump Control", 
+        namespace: "bsileo", 
+        author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_spa_pump_control.groovy') {
 	capability "Switch"
         command "onConfirmed"
         command "offConfirmed"

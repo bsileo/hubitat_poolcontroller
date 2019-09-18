@@ -12,7 +12,10 @@
  *
  */
 metadata {
-	definition (name: "Pentair Intellichem", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Intellichem", 
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_intellichem.groovy') {
 		capability "Refresh"
         capability "pHMeasurement"
         

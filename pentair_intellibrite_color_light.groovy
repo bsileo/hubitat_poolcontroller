@@ -9,7 +9,10 @@
  *  Date: 2018-10-21
  */
 metadata {
-	definition (name: "Pentair Intellibrite Color Light", namespace: "bsileo", author: "Brad Sileo") {		
+	definition (name: "Pentair Intellibrite Color Light",
+            namespace: "bsileo", 
+            author: "Brad Sileo",
+            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_intellibrite_color_light.groovy') {		
 		capability "Switch"
 		capability "Momentary"
         attribute "circuitID","string"
