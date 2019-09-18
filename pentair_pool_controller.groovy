@@ -12,13 +12,14 @@
  */
 
 metadata {
-	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo", importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
+	definition (name: "Pentair Pool Controller", 
+                namespace: "bsileo", 
+                author: "Brad Sileo", 
+                importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
        capability "Polling"
        capability "Refresh"
        capability "Configuration"
-       capability "Switch"
-       capability "Actuator"
-       capability "Sensor"
+       capability "Switch"              
        attribute "poolPump","string"
        attribute "spaPump","string"
        attribute "valve","string"       
