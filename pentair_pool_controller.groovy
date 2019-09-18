@@ -12,7 +12,7 @@
  */
 
 metadata {
-	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo") {
+	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo", importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
        capability "Polling"
        capability "Refresh"
        capability "Configuration"
@@ -638,17 +638,17 @@ def setCircuitCallback(hubitat.device.HubResponse hubResponse) {
 def heaterOn(spDevice) {
   //logger( "Executing 'heater on for ${spDevice}'","debug")
   def tag = spDevice.deviceNetworkId.toLowerCase().split("-")[1]
-  sendEthernet("/${tag}/mode/1")
+  sendEthernet("/${tag}/mode/1", heaterModeCallback)
 }
 
 def heaterOff(spDevice) {
 	//logger( "Executing 'heater off for ${spDevice}'","debug")
     def tag = spDevice.deviceNetworkId.toLowerCase().split("-")[1]
-    sendEthernet("/${tag}/mode/0")
+    sendEthernet("/${tag}/mode/0", heaterModeCallback)
 }
 
 def heaterSetMode(spDevice, mode) {
-  logger( "Executing 'heater on for ${spDevice}'","debug")
+    logger( "Executing 'heater going to ${mode} for ${spDevice}'","debug")
   def tag = spDevice.deviceNetworkId.toLowerCase().split("-")[1]
   sendEthernet("/${tag}/mode/${mode}", heaterModeCallback)
 }
@@ -661,9 +661,9 @@ def updateSetpoint(spDevice,setPoint) {
 def heaterModeCallback(hubResponse) {
     logger( "Entered heaterModeCallback()...","debug")
 	def msg = hubResponse.json    
-    //logger( "Full msg: ${msg}" ,"debug") 
-    //logger( "Heater status = ${msg.status}"  ,"debug")  
-    //logger( "${msg.text} -> indexOf:" + msg.text.indexOf('spa'),"debug")
+    logger( "Full msg: ${msg}" ,"debug") 
+    logger( "Heater status = ${msg.status}"  ,"trace")  
+    logger( "${msg.text} -> indexOf:" + msg.text.indexOf('spa'),"trace")
     if (msg.text.indexOf('spa') > 0) {
     	def ph=getSpaHeatChild()
         log.info("Update Spa heater to ${msg.status}")
