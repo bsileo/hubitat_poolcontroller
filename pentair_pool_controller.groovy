@@ -12,14 +12,14 @@
  */
 
 metadata {
-	definition (name: "Pentair Pool Controller", 
-                namespace: "bsileo", 
-                author: "Brad Sileo", 
+	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo",
                 importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
        capability "Polling"
        capability "Refresh"
        capability "Configuration"
-       capability "Switch"              
+       capability "Switch"
+       capability "Actuator"
+       capability "Sensor"
        attribute "poolPump","string"
        attribute "spaPump","string"
        attribute "valve","string"       
@@ -179,9 +179,9 @@ def makeLightCircuit(circuitID) {
                 log.info "Found existing Light Switch ${circuitID} - No Updates Supported" 
             }
         }
-        catch(e)
+        catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
         {
-            logger( "Error! " + e ,"debug")                                                         
+            logger( "Failed to create child of type 'Pentair Pool Light Switch' - is this driver installed?" + e ,"debug")                                                         
         }
 }
 
@@ -208,9 +208,9 @@ def makeIntellibriteLightCircuit(circuitID,instance) {
                 auxButton.updateDataValue("instanceID",instance)
             }
         }
-        catch(e)
+        catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
         {
-            logger( "Error! " + e  ,"debug")                                                              
+            logger( "Failed to create child of type 'Pentair Intellibrite Color Light' - is this driver installed? " + e  ,"debug")                                                              
         }
 }
 def manageIntellibriteModes(instanceID, fName, circuitID) {	  
@@ -241,10 +241,10 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
                     cButton.updateDataValue("modeName",it)
                 	state.installMsg = state.installMsg + displayName + ": created light mode device. \r\n\r\n"
                 }
-                catch(e)
+                catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
                 {
-                    logger( "Error! " + e ,"debug")                                    
-                    state.installMsg = state.installMsg + it + ": problem creating light mode device. Check your IDE to make sure the smartthings : Pentair Intellibrite Light Mode device handler is installed and published. \r\n\r\n"
+                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed - " + e ,"error")                                    
+                    state.installMsg = state.installMsg + it + ": problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed. \r\n\r\n"
                 }
             }
             else {
@@ -265,7 +265,7 @@ def managePumps() {
     	try {
         	if (data['type'] != 'none') {
                 def pumpName = "PumpID${id}"
-                def pumpFName = "Pump # ${id}"
+                def pumpFName = "${device.displayName} (Pump # ${id})"
                 def childDNI = getChildDNI(pumpName)
                 def pump = childDevices.find({it.deviceNetworkId == childDNI})
                 if (!pump) {
@@ -284,9 +284,9 @@ def managePumps() {
                 }
             }
         }
-        catch(e)
+        catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
         {
-            logger( "Error With Pump Child ${id} - " + e  ,"debug")                                                              
+            logger( "Failed to create 'Pentair Pump Control' - is this driver installed? ${id} - " + e  ,"error")                                                              
         }
     }
 }
@@ -319,9 +319,9 @@ def manageFeatureCircuits() {
                 log.info "Found existing Aux Switch ${i} - No Updates Supported" 
             }
         }
-        catch(e)
+        catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
         {
-            logger( "Error! " + e ,"debug")                                                               
+            logger( "Failed to create 'Pentair Pool Control Switch' - is this Drive installed? " + e ,"debug")                                                               
         }
     }
 }
@@ -375,14 +375,14 @@ def parsePump(msg) {
     }
 }
 def parseSchedule(msg) {
-	log.info("Parse Schedule: ${msg}")
+	logger("Parse Schedule: ${msg}","debug")
 }
 def parseValve(msg) {
-	log.info("Parse Valve: ${msg}")
+	logger("Parse Valve: ${msg}","debug")
     sendEvent(name: "valve", value: msg.valves)            
 }
 def parseIntellichem(msg) {
-	log.info("Parse Intellichem: ${msg}")
+	logger("Parse Intellichem: ${msg}","debug")
     childDevices.find({it.deviceNetworkId == "poolIntellichem"})?.parse(msg)
 }
  
@@ -475,7 +475,7 @@ def getChildDNI(name) {
 }
 
 def parseTemps(msg) {
-    log.info("Parse Temps ${msg}")
+    logger("Parse Temps ${msg}","debug")
     def ph=childDevices.find({it.deviceNetworkId == getChildDNI("poolHeat")})
     def sh=childDevices.find({it.deviceNetworkId == getChildDNI("spaHeat")})
     def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
@@ -516,7 +516,7 @@ def parseTemps(msg) {
 }
 
 def parseChlorinator(msg) {
-	log.info('Parse Chlor')
+    logger("Parse Chlor ${msg}","debug")
     childDevices.find({it.deviceNetworkId == getChildDNI("poolChlorinator")})?.parse(msg)
 }
 
