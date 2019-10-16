@@ -12,16 +12,13 @@
  */
 
 metadata {
-	definition (name: "Pentair Pool Controller", 
-            namespace: "bsileo", 
-            author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
+	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo",
+                importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
        capability "Polling"
        capability "Refresh"
        capability "Configuration"
        capability "Switch"
-       capability "Actuator"
-       capability "Sensor"
+
        attribute "poolPump","string"
        attribute "spaPump","string"
        attribute "valve","string"       
@@ -56,6 +53,7 @@ metadata {
 def configure() {
   logger( "Executing 'configure()'","info")
   updateDeviceNetworkID()
+  unsubscribe()
 }
 
 def installed() {
@@ -178,7 +176,7 @@ def makeLightCircuit(circuitID) {
                 logger( "Success - Created Light switch ${circuitID}" ,"debug")
             }
             else {
-                log.info "Found existing Light Switch ${circuitID} - No Updates Supported" 
+                logger( "Found existing Light Switch ${circuitID} - No Updates Supported" , 'info')
             }
         }
         catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
@@ -236,24 +234,22 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
                 try{                           
                 	def cButton = addChildDevice("bsileo", "Pentair Intellibrite Color Light Mode", cDNI,
                              [ label: displayName, componentName: deviceID, componentLabel: deviceID,
-                             isComponent:true, completedSetup:true,
+                             isComponent:false, completedSetup:true,
                              data: [modeName:it, circuitID:circuitID]
                              ])
                     cButton.updateDataValue("circuitID",circuitID)
-                    cButton.updateDataValue("modeName",it)
-                	state.installMsg = state.installMsg + displayName + ": created light mode device. \r\n\r\n"
+                    cButton.updateDataValue("modeName",it)                    
                 }
                 catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
                 {
-                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed - " + e ,"error")                                    
-                    state.installMsg = state.installMsg + it + ": problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed. \r\n\r\n"
+                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed - " + e ,"error")
                 }
             }
             else {
                 state.installMsg = state.installMsg + it + ": light mode device already exists. \r\n\r\n"
                 logger( "Existing button: " + existingButton,"debug")
                 existingButton.updateDataValue("circuitID",circuitID)
-                existingButton.updateDataValue("modeName",it)
+                existingButton.updateDataValue("modeName",it)                
             }
       }
 }
@@ -569,7 +565,10 @@ def setPumpCallback(hubResponse) {
 //
 // Intellibrite color light API interface
 //
-
+def setColorHandler(device) {
+    logger("ColorHandler():${device}","debug")    
+    setColor(device.getDataValue("circuitID"), device.getColorOrModeID())
+}
 
 def setColor(circuitID,colorID) {
     setCircuit(circuitID,1)
