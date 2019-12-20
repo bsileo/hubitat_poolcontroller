@@ -53,7 +53,7 @@ metadata {
 def configure() {
   logger( "Executing 'configure()'","info")
   updateDeviceNetworkID()
-  unsubscribe()
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
 def installed() {
@@ -62,13 +62,9 @@ def installed() {
 
 def updated() {
   manageChildren()
-  if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 5000) {
-    state.updatedLastRanAt = now()
-    logger( "Executing 'updated()'","debug")
-    runIn(3, "updateDeviceNetworkID")
-  } else {
-    log.trace "updated(): Ran within last 5 seconds so aborting."
-  }  
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+  state.installMsg=''
+  updateDeviceNetworkID()  
 }
 
 def manageChildren() {
@@ -101,17 +97,18 @@ def manageChildren() {
 
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
-        airTemp = addChildDevice("bsileo","Pentair Temperature Measurement Capability", getChildDNI("airTemp"),  
+        logger(("Create Air temp child device"),"debug")
+        airTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("airTemp"),  
                                  [ label: "${device.displayName} Air Temperature", componentName: "airTemp", componentLabel: "${device.displayName} Air Temperature",
-                                  isComponent:false, completedSetup:true])                	
+                                  isComponent:false, completedSetup:true])                                     
     }
 
     
     if (getDataValue("includeSolar")=='true') {    
     	def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})        
     	if (!solarTemp) {
-    		logger(("Create Solar temp"),"debug")
-        	solarTemp = addChildDevice("bsileo","Pentair Temperature Measurement Capability", getChildDNI("solarTemp"),  
+    		logger(("Create Solar temp child device"),"debug")
+        	solarTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("solarTemp"),  
                                    [ label: "${device.displayName} Solar Temperature", componentName: "solarTemp", componentLabel: "${device.displayName} Solar Temperature",
                                     isComponent:false, completedSetup:true])        
     	}
@@ -193,17 +190,17 @@ def makeIntellibriteLightCircuit(circuitID,instance) {
     try {
             def auxButton = childDevices.find({it.deviceNetworkId == getChildDNI(auxname)})
             if (!auxButton) {
-            	log.info "Create Light switch ${auxLabel} Named=${auxname}" 
+            	logger("Create Light switch ${auxLabel} Named=${auxname}" , 'info')
                 auxButton = addChildDevice("bsileo","Pentair Intellibrite Color Light", getChildDNI(auxname),  
                                            [completedSetup: true, label: auxLabel , isComponent:false, componentName: auxname, componentLabel: auxLabel,
                                            data:[circuitID:circuitID, instanceID:instance]
                                            ])
                 auxButton.updateDataValue("circuitID",circuitID)
                 auxButton.updateDataValue("instanceID",instance)
-                logger( "Success - Created Intellibrite Light switch ${instance}=${circuitID}" ,"debug")
+                logger( "Success - Created Intellibrite Color Light ${instance}=${circuitID}" ,"debug")                
             }
             else {
-                log.info "Found existing Light Switch ${circuitID} - refreshed" 
+                logger("Found existing Light Switch ${circuitID} - refreshed" , 'info')
                 auxButton.updateDataValue("circuitID",circuitID)
                 auxButton.updateDataValue("instanceID",instance)
             }
@@ -228,6 +225,7 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
  	    displayName = "Intellibrite Circuit ${instanceID}:${it}"
         deviceID = "lightmode-${instanceID}-${it}"
         cDNI = getChildDNI(deviceID)
+        // Custom device approach
         existingButton = childDevices.find({it.deviceNetworkId == cDNI})        
         logger( ("Create " + it + " ${displayName}::${deviceID}==${cDNI}" ),"debug")
         if (!existingButton){                
@@ -250,6 +248,32 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
                 logger( "Existing button: " + existingButton,"debug")
                 existingButton.updateDataValue("circuitID",circuitID)
                 existingButton.updateDataValue("modeName",it)                
+            }
+        
+        // Generic Component approach
+        deviceID = "lightmodeGC-${instanceID}-${it}"
+        cDNI = getChildDNI(deviceID)        
+        existingComp = childDevices.find({it.deviceNetworkId == cDNI})        
+        logger( ("Create GenericComponent " + it + " ${displayName}::${deviceID}==${cDNI}" ),"debug")
+        if (!existingComp){                
+                try{                           
+                	def cButton = addChildDevice("hubitat", "Generic Component Switch", cDNI,
+                             [ label: displayName, componentName: deviceID, componentLabel: deviceID,
+                             isComponent:false, completedSetup:true,
+                             data: [modeName:it, circuitID:circuitID]
+                             ])
+                    cButton.updateDataValue("circuitID",circuitID)
+                    cButton.updateDataValue("modeName",it)                    
+                }
+                catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+                {
+                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Generic Component Switch is available - " + e ,"error")
+                }
+            }
+            else {                
+                logger( "Existing component: " + existingComp,"trace")
+                existingComp.updateDataValue("circuitID",circuitID)
+                existingComp.updateDataValue("modeName",it)                
             }
       }
 }
@@ -408,10 +432,10 @@ def parseCircuits(msg) {
             	sendEvent(name: "spaPump", value: status, displayed:true)
                 def spaPump = getSpaPumpChild()
                 if (stat == 0) { 
-                	spaPump.offConfirmed() 
+                	spaPump?.offConfirmed() 
              	} 
             	else { 
-               		spaPump.onConfirmed()
+               		spaPump?.onConfirmed()
             	};
             }
      		child.setCircuitFunction("${it.value.circuitFunction}")
@@ -478,7 +502,7 @@ def parseTemps(msg) {
     def sh=childDevices.find({it.deviceNetworkId == getChildDNI("spaHeat")})
     def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     def st = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
-    
+    String unit = "°${location.temperatureScale}"
     msg.each {k, v ->        	         
          //logger( "TEMP Key:${k}  Val:${v}","debug")
          switch (k) {
@@ -489,10 +513,12 @@ def parseTemps(msg) {
             	sh?.setTemperature(v)
             	break
         	case "airTemp":            	
-                at?.setTemperature(v)
+                //at?.setTemperature(v)
+                at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])
             	break
         	case "solarTemp":
-                st?.setTemperature(v)
+                //st?.setTemperature(v)
+                st?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])                
             	break
         	case "poolSetPoint":            	
                 ph?.setHeatingSetpoint(v)
@@ -584,6 +610,40 @@ def setColorCallback(hubResponse) {
 	def msg = hubResponse.body
     //logger("ColorCallback(MSG):${msg}","debug")
     sendEthernet("/circuit")
+}
+
+def getColorOrModeID() {
+	def colorID 
+    def colorIDLookup = ["White" : 0,
+        "Custom" :1,
+        "Light Green":2,
+        "Green":4,
+        "Cyan":6,
+        "Blue":8,
+        "Lavender":10,
+        "Magenta":12,
+        "Light Magenta":14,
+        'Off': 0,
+        'On': 1,
+        'Color Sync': 128,
+        'Color Swim': 144,
+        'Color Set': 160,
+        'Party': 177,
+        'Romance': 178,
+        'Caribbean': 179,
+        'American': 180,
+        'Sunset': 181,
+        'Royal': 182,
+        'Save': 190,
+        'Recall': 191,
+        'Blue': 193,
+        'Green': 194,
+        'Red': 195,
+        'White': 196,
+        'Magenta': 197
+        ]
+    def mode = getDataValue("modeName")
+    return colorIDLookup[mode]    
 }
 
 def lightCircuitID() {
