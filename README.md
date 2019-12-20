@@ -8,7 +8,7 @@ Copyright (C) 2017-2019  Brad Sileo / bsileo / brad@sileo.name
           https://github.com/tagyoureit/nodejs-poolController/tree/v5.0.0
 2. Update your Nodejs-Poolcontroller installation with the SmartThings interface:
    
-   Update your configuration file to enable "OutputToHubitat". Note that the "*" format for an address is NOT supportred with Hubitat.
+   Update your configuration file to enable "OutputToHubitat". Note that the "*" format for an address is NOT supported with Hubitat.
 	 ```"integrations": {
         	"outputToHubitat": 1
     		},
@@ -17,6 +17,7 @@ Copyright (C) 2017-2019  Brad Sileo / bsileo / brad@sileo.name
         	"port": "39501",
         	"logEnabled": 1
     	},```
-3. Install the new Apps and Drivers into Hubitat
-4. Install the new App
-5. Use the newly created devices in Dashboards, Rules, Groups, etc!!
+3. Open the Apps Code, "new App" and then paste the code for the <Master App>[https://github.com/bsileo/hubitat_poolcontroller/blob/master/poolControllerApp.groovy] into it and Save.
+4. Install all of the Drivers into Drivers Code.
+5. Go to Apps, Add User App and create a "Pool Controller" app. The Nodejs-Poolcontroller shoudl be autolocated, or you can manually enter the details
+6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
