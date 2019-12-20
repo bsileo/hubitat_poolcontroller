@@ -17,7 +17,7 @@ Copyright (C) 2017-2019  Brad Sileo / bsileo / brad@sileo.name
         	"port": "39501",
         	"logEnabled": 1
     	},```
-3. Open the Apps Code, "new App" and then paste the code for the <Master App>[https://github.com/bsileo/hubitat_poolcontroller/blob/master/poolControllerApp.groovy] into it and Save.
-4. Install all of the Drivers into Drivers Code.
+3. Open the Apps Code, "new App" and then paste the code for the [Master App(https://github.com/bsileo/hubitat_poolcontroller/blob/master/poolControllerApp.groovy) into it and Save.
+4. Install all of the Drivers into Drivers Code
 5. Go to Apps, Add User App and create a "Pool Controller" app. The Nodejs-Poolcontroller shoudl be autolocated, or you can manually enter the details
 6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
