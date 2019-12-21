@@ -251,7 +251,7 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
             }
         
         // Generic Component approach
-        deviceID = "lightmodeGC-${instanceID}-${it}"
+        /*deviceID = "lightmodeGC-${instanceID}-${it}"
         cDNI = getChildDNI(deviceID)        
         existingComp = childDevices.find({it.deviceNetworkId == cDNI})        
         logger( ("Create GenericComponent " + it + " ${displayName}::${deviceID}==${cDNI}" ),"debug")
@@ -275,6 +275,7 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
                 existingComp.updateDataValue("circuitID",circuitID)
                 existingComp.updateDataValue("modeName",it)                
             }
+       */
       }
 }
 
