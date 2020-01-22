@@ -1,12 +1,10 @@
 /**
  *  Copyright 2019 Brad Sileo
  *
- *
  *  Intellibrite Color Mode Device
  *
  *  Author: Brad Sileo
  *
- *  Date: 2018-10-21
  */
 metadata {
 	definition (name: "Pentair Intellibrite Color Light Mode",
@@ -14,6 +12,7 @@ metadata {
             author: "Brad Sileo",
             importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_intellibrite_coilor_light_mode.groovy') {
 		capability "Momentary"
+        capability "Actuator"
 	}
 }
 
@@ -33,6 +32,13 @@ def push() {
     def mode = getDataValue("modeName")
     def circuitID = getDataValue("circuitID")
     parent.setColor(circuitID, getColorOrModeID())	
+    // Always set me back to off as we do not currently track this from the parent side
+    sendEvent(name: "switch", value: "off")
+}
+
+def on() {
+    push()
+    sendEvent(name: "switch", value: "on")
 }
 
 def getColorOrModeID() {

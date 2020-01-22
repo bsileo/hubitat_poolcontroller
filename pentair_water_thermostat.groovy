@@ -216,6 +216,8 @@ def switchToModeID(id) {
 def switchToMode(nextMode) {
  	log.debug("switchToMode from parent--> '${nextMode}'")
    	sendEvent(name: "heaterMode", value: nextMode, displayed:true, descriptionText: "$device.displayName is in ${nextMode} mode")
+    def mode = nextMode =='OFF' ? 'off' : 'on'
+    sendEvent(name: "switch", value: mode, displayed: true, descriptionText: "Heater switch set to $mode")
 }
 
 def setThermostatMode(String value) {
@@ -242,7 +244,7 @@ def heaterOn() {
 def heaterOff() {
 	// set it to mode 0
 	log.debug("HEATER OFF ${device}")
-	getparent().heaterOff(device)
+	getParent().heaterOff(device)
 }
 
 def heaterToMode(modeID) {
