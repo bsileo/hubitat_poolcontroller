@@ -1,11 +1,10 @@
 /**
- *  Copyright 2018 Brad Sileo
+ *  Copyright 2020 Brad Sileo
  *
- *
- *  Intellibrite Color Mode Tile
+ *  Intellibrite Color Mode Device
  *
  *  Author: Brad Sileo
- * 
+ *
  */
 metadata {
 	definition (name: "Pentair Intellibrite Color Light",

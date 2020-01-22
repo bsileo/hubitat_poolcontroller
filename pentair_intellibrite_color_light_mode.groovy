@@ -1,5 +1,5 @@
 /**
- *  Copyright 2019 Brad Sileo
+ *  Copyright 2020 Brad Sileo
  *
  *  Intellibrite Color Mode Device
  *
