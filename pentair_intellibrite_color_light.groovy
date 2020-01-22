@@ -5,8 +5,7 @@
  *  Intellibrite Color Mode Tile
  *
  *  Author: Brad Sileo
- *
- *  Date: 2018-10-21
+ * 
  */
 metadata {
 	definition (name: "Pentair Intellibrite Color Light",
@@ -16,36 +15,11 @@ metadata {
 		capability "Switch"
 		capability "Momentary"
         attribute "circuitID","string"
-	}
-
-	// simulator metadata
-	simulator {
-	}
-
-	// UI tile definitions
-	tiles {
-		standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
-			state "off", label: "Off", action: "on", icon:"st.Lighting.light21", nextState: "on", backgroundColor: "#ffffff"
-			state "on", label: "On", action: "off", icon:"st.Lighting.light21",  nextState: "off", backgroundColor: "#79b821"
-
-		/*	Future use if we find a way to show current state...
-        	state "Party", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
-            state "Romance", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
-            state "Caribbean", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"        
-            state "American", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"        
-            state "Sunset", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#ffff00", nextState:"off"        
-            state "Royal", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"        
-
-			state "Blue", label:"Blue", action: "off", icon:"st.Lighting.light21", backgroundColor:"#0000FF", nextState:"off"
-		    state "Green", label:"Green", action: "off", icon:"st.Lighting.light21", backgroundColor:"#33cc33", nextState:"off"
-			state "Red", label: "Red", action: "off", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f", nextState: "off"
-            state "White", label:"White", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
-            state "Magenta", label:"Magenta", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"
-          */  
-		}
- 			
-		main "switch"
-		details "switch"
+        attribute "instanceID","string"
+		command "setLightMode", [[name:"Light mode*",
+			"type":"ENUM","description":"Select an Intellibright mode to set",
+			"constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
+			]]
 	}
 }
 
@@ -70,9 +44,9 @@ def manageData() {
 	sendEvent(name: "circuitID", value: cid, isStateChange: true, displayed: false)
 }
 
-def getChildDNI(name) {
-	def cid = getDataValue("circuitID")
-	return getParent().getChildDNI("IB" + cid + "-" + name)
+def getlightModeChild(mode) {
+	def instanceID = getDataValue("instanceID")
+    return getParent().getIntellibrightChild(instanceID, mode)
 }
 
 def manageChildren() {
@@ -118,6 +92,12 @@ def onConfirmed() {
 def offConfirmed() {
 	//log.debug("CONF ${device} turned off")
 	sendEvent(name: "switch", value: "off", displayed:true)  
+}
+
+def setLightMode(mode) {
+	def child = getlightModeChild(mode)
+    log.debug("Pushing ${child}")
+	return child?.push()
 }
 
 def setCircuitFunction(f) {

@@ -12,16 +12,13 @@
  */
 
 metadata {
-	definition (name: "Pentair Pool Controller", 
-            namespace: "bsileo", 
-            author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
+	definition (name: "Pentair Pool Controller", namespace: "bsileo", author: "Brad Sileo",
+                importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_pool_controller.groovy') {
        capability "Polling"
        capability "Refresh"
        capability "Configuration"
        capability "Switch"
-       capability "Actuator"
-       capability "Sensor"
+
        attribute "poolPump","string"
        attribute "spaPump","string"
        attribute "valve","string"       
@@ -56,6 +53,7 @@ metadata {
 def configure() {
   logger( "Executing 'configure()'","info")
   updateDeviceNetworkID()
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
 def installed() {
@@ -64,13 +62,9 @@ def installed() {
 
 def updated() {
   manageChildren()
-  if (!state.updatedLastRanAt || now() >= state.updatedLastRanAt + 5000) {
-    state.updatedLastRanAt = now()
-    logger( "Executing 'updated()'","debug")
-    runIn(3, "updateDeviceNetworkID")
-  } else {
-    log.trace "updated(): Ran within last 5 seconds so aborting."
-  }  
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+  state.installMsg=''
+  updateDeviceNetworkID()  
 }
 
 def manageChildren() {
@@ -103,17 +97,18 @@ def manageChildren() {
 
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
-        airTemp = addChildDevice("bsileo","Pentair Temperature Measurement Capability", getChildDNI("airTemp"),  
+        logger(("Create Air temp child device"),"debug")
+        airTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("airTemp"),  
                                  [ label: "${device.displayName} Air Temperature", componentName: "airTemp", componentLabel: "${device.displayName} Air Temperature",
-                                  isComponent:false, completedSetup:true])                	
+                                  isComponent:false, completedSetup:true])                                     
     }
 
     
     if (getDataValue("includeSolar")=='true') {    
     	def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})        
     	if (!solarTemp) {
-    		logger(("Create Solar temp"),"debug")
-        	solarTemp = addChildDevice("bsileo","Pentair Temperature Measurement Capability", getChildDNI("solarTemp"),  
+    		logger(("Create Solar temp child device"),"debug")
+        	solarTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("solarTemp"),  
                                    [ label: "${device.displayName} Solar Temperature", componentName: "solarTemp", componentLabel: "${device.displayName} Solar Temperature",
                                     isComponent:false, completedSetup:true])        
     	}
@@ -140,8 +135,7 @@ def manageChildren() {
 }
 
 def manageIntellibriteLights() {
-  
-	logger( "Create/Update Intellibrite Light Children for this device","debug")
+	logger( "Create/Update Light Children for this device","debug")
     def lights = getParent().getState().lightCircuits
     def instance = 1
     def lCircuits = getParent().getState().circuitData
@@ -178,7 +172,7 @@ def makeLightCircuit(circuitID) {
                 logger( "Success - Created Light switch ${circuitID}" ,"debug")
             }
             else {
-                log.info "Found existing Light Switch ${circuitID} - No Updates Supported" 
+                logger( "Found existing Light Switch ${circuitID} - No Updates Supported" , 'info')
             }
         }
         catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
@@ -188,6 +182,7 @@ def makeLightCircuit(circuitID) {
 }
 
 def makeIntellibriteLightCircuit(circuitID,instance) {
+    logger("Make Intellibright circuit ${circuitID} Instance ${instance}","info")
     def lCircuits = getParent().getState().circuitData
     def lightInfo = lCircuits[circuitID]
     def auxname = "IB${instance}-Main"        
@@ -195,25 +190,29 @@ def makeIntellibriteLightCircuit(circuitID,instance) {
     try {
             def auxButton = childDevices.find({it.deviceNetworkId == getChildDNI(auxname)})
             if (!auxButton) {
-            	log.info "Create Light switch ${auxLabel} Named=${auxname}" 
+            	logger("Create Light switch ${auxLabel} Named=${auxname}" , 'info')
                 auxButton = addChildDevice("bsileo","Pentair Intellibrite Color Light", getChildDNI(auxname),  
                                            [completedSetup: true, label: auxLabel , isComponent:false, componentName: auxname, componentLabel: auxLabel,
                                            data:[circuitID:circuitID, instanceID:instance]
                                            ])
                 auxButton.updateDataValue("circuitID",circuitID)
-                auxButton.updateDataValue("instanceID",instance)
-                logger( "Success - Created Intellibrite Light switch ${instance}=${circuitID}" ,"debug")
+                auxButton.updateDataValue("instanceID",instance.toString())
+                logger( "Success - Created Intellibrite Color Light ${instance}=${circuitID}" ,"debug")                
             }
             else {
-                log.info "Found existing Light Switch ${circuitID} - refreshed" 
+                logger("Found existing Intellibright Color Light ${instance}=${circuitID} - refreshed" , 'info')
                 auxButton.updateDataValue("circuitID",circuitID)
-                auxButton.updateDataValue("instanceID",instance)
+                auxButton.updateDataValue("instanceID",instance.toString())
             }
         }
         catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
         {
-            logger( "Failed to create child of type 'Pentair Intellibrite Color Light' - is this driver installed? " + e  ,"debug")                                                              
+            logger( "Failed to create child of type 'Pentair Intellibrite Color Light' - is this driver installed? " + e  ,"error")                                                              
         }
+        catch(e) 
+        {
+                logger( "Failed in makeIntellibrightLightCircuit -" + e  ,"error")                                                              
+        }       
 }
 def manageIntellibriteModes(instanceID, fName, circuitID) {	  
 	logger( "Create/Update Intellibrite Light Mode Children for device:" + circuitID,"debug")
@@ -230,31 +229,56 @@ def manageIntellibriteModes(instanceID, fName, circuitID) {
  	    displayName = "Intellibrite Circuit ${instanceID}:${it}"
         deviceID = "lightmode-${instanceID}-${it}"
         cDNI = getChildDNI(deviceID)
+        // Custom device approach
         existingButton = childDevices.find({it.deviceNetworkId == cDNI})        
         logger( ("Create " + it + " ${displayName}::${deviceID}==${cDNI}" ),"debug")
         if (!existingButton){                
                 try{                           
                 	def cButton = addChildDevice("bsileo", "Pentair Intellibrite Color Light Mode", cDNI,
                              [ label: displayName, componentName: deviceID, componentLabel: deviceID,
-                             isComponent:true, completedSetup:true,
+                             isComponent:false, completedSetup:true,
                              data: [modeName:it, circuitID:circuitID]
                              ])
                     cButton.updateDataValue("circuitID",circuitID)
-                    cButton.updateDataValue("modeName",it)
-                	state.installMsg = state.installMsg + displayName + ": created light mode device. \r\n\r\n"
+                    cButton.updateDataValue("modeName",it)                    
                 }
                 catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
                 {
-                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed - " + e ,"error")                                    
-                    state.installMsg = state.installMsg + it + ": problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed. \r\n\r\n"
+                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Pentair Intellibrite Light Mode' device handler is installed - " + e ,"error")
                 }
             }
-            else {
-                state.installMsg = state.installMsg + it + ": light mode device already exists. \r\n\r\n"
-                logger( "Existing button: " + existingButton,"debug")
+            else {                
+                logger( "${it} light mode device already exists. " + existingButton,"debug")
                 existingButton.updateDataValue("circuitID",circuitID)
-                existingButton.updateDataValue("modeName",it)
+                existingButton.updateDataValue("modeName",it)                
             }
+        
+        // Generic Component approach
+        /*deviceID = "lightmodeGC-${instanceID}-${it}"
+        cDNI = getChildDNI(deviceID)        
+        existingComp = childDevices.find({it.deviceNetworkId == cDNI})        
+        logger( ("Create GenericComponent " + it + " ${displayName}::${deviceID}==${cDNI}" ),"debug")
+        if (!existingComp){                
+                try{                           
+                	def cButton = addChildDevice("hubitat", "Generic Component Switch", cDNI,
+                             [ label: displayName, componentName: deviceID, componentLabel: deviceID,
+                             isComponent:false, completedSetup:true,
+                             data: [modeName:it, circuitID:circuitID]
+                             ])
+                    cButton.updateDataValue("circuitID",circuitID)
+                    cButton.updateDataValue("modeName",it)                    
+                }
+                catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+                {
+                    logger( "Error! problem creating light mode device. Check your hub to make sure the 'Generic Component Switch is available - " + e ,"error")
+                }
+            }
+            else {                
+                logger( "Existing component: " + existingComp,"trace")
+                existingComp.updateDataValue("circuitID",circuitID)
+                existingComp.updateDataValue("modeName",it)                
+            }
+       */
       }
 }
 
@@ -412,10 +436,10 @@ def parseCircuits(msg) {
             	sendEvent(name: "spaPump", value: status, displayed:true)
                 def spaPump = getSpaPumpChild()
                 if (stat == 0) { 
-                	spaPump.offConfirmed() 
+                	spaPump?.offConfirmed() 
              	} 
             	else { 
-               		spaPump.onConfirmed()
+               		spaPump?.onConfirmed()
             	};
             }
      		child.setCircuitFunction("${it.value.circuitFunction}")
@@ -476,13 +500,22 @@ def getChildDNI(name) {
 	return getDataValue("controllerMac") + "-" + name
 }
 
+def getIntellibrightChild(instanceID, mode) {     
+     def deviceID = "lightmode-${instanceID}-${mode}"
+     def childDNI = getChildDNI(deviceID)     
+     child = childDevices.find({it.deviceNetworkId == childDNI})    
+     logger("Get LightModeChild ${deviceID} == ${childDNI} --> ${child}","debug")
+     return child
+    
+}
+
 def parseTemps(msg) {
     logger("Parse Temps ${msg}","debug")
     def ph=childDevices.find({it.deviceNetworkId == getChildDNI("poolHeat")})
     def sh=childDevices.find({it.deviceNetworkId == getChildDNI("spaHeat")})
     def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     def st = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
-    
+    String unit = "°${location.temperatureScale}"
     msg.each {k, v ->        	         
          //logger( "TEMP Key:${k}  Val:${v}","debug")
          switch (k) {
@@ -493,10 +526,12 @@ def parseTemps(msg) {
             	sh?.setTemperature(v)
             	break
         	case "airTemp":            	
-                at?.setTemperature(v)
+                //at?.setTemperature(v)
+                at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])
             	break
         	case "solarTemp":
-                st?.setTemperature(v)
+                //st?.setTemperature(v)
+                st?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])                
             	break
         	case "poolSetPoint":            	
                 ph?.setHeatingSetpoint(v)
@@ -569,7 +604,10 @@ def setPumpCallback(hubResponse) {
 //
 // Intellibrite color light API interface
 //
-
+def setColorHandler(device) {
+    logger("ColorHandler():${device}","debug")    
+    setColor(device.getDataValue("circuitID"), device.getColorOrModeID())
+}
 
 def setColor(circuitID,colorID) {
     setCircuit(circuitID,1)
@@ -585,6 +623,40 @@ def setColorCallback(hubResponse) {
 	def msg = hubResponse.body
     //logger("ColorCallback(MSG):${msg}","debug")
     sendEthernet("/circuit")
+}
+
+def getColorOrModeID() {
+	def colorID 
+    def colorIDLookup = ["White" : 0,
+        "Custom" :1,
+        "Light Green":2,
+        "Green":4,
+        "Cyan":6,
+        "Blue":8,
+        "Lavender":10,
+        "Magenta":12,
+        "Light Magenta":14,
+        'Off': 0,
+        'On': 1,
+        'Color Sync': 128,
+        'Color Swim': 144,
+        'Color Set': 160,
+        'Party': 177,
+        'Romance': 178,
+        'Caribbean': 179,
+        'American': 180,
+        'Sunset': 181,
+        'Royal': 182,
+        'Save': 190,
+        'Recall': 191,
+        'Blue': 193,
+        'Green': 194,
+        'Red': 195,
+        'White': 196,
+        'Magenta': 197
+        ]
+    def mode = getDataValue("modeName")
+    return colorIDLookup[mode]    
 }
 
 def lightCircuitID() {
