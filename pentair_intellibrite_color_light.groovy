@@ -1,5 +1,5 @@
 /**
- *  Copyright 2020 Brad Sileo
+ *  Copyright 2018 Brad Sileo
  *
  *
  *  Intellibrite Color Mode Tile
@@ -13,9 +13,7 @@ metadata {
             author: "Brad Sileo",
             importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pentair_intellibrite_color_light.groovy') {		
 		capability "Switch"
-		capability "Momentary"
-        attribute "circuitID","string"
-        attribute "instanceID","string"
+		capability "Momentary"      
 		command "setLightMode", [[name:"Light mode*",
 			"type":"ENUM","description":"Select an Intellibright mode to set",
 			"constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
