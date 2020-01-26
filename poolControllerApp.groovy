@@ -1,9 +1,7 @@
 /**
+ *  Service Manager for attaching Hubitat to a nodejsPoolController
+ *
  *  Copyright 2020 Brad Sileo
- *
- *  Intellibrite Color Mode Device
- *
- *  Author: Brad Sileo
  *
  */
 definition(
@@ -19,8 +17,32 @@ definition(
 
 preferences {
     page(name: "deviceDiscovery", title: "UPnP Device Setup", content: "deviceDiscovery")
+    page(name: "manualPage", title: "Manually enter PoolController")
     page(name: "poolConfig", title: "Pool Configuration", content: "poolConfig") 
 }
+
+def installed() {
+	log.debug "Installed with settings: ${settings}"
+	initialize()
+}
+
+def updated() {
+	log.debug "Updated with settings: ${settings}"
+	unsubscribe()
+	initialize()
+}
+
+def initialize() {
+	unsubscribe()
+	unschedule()
+	ssdpSubscribe()
+	if (selectedDevice) {
+		addDevices()
+	}
+	addManualDevice()
+	//runEvery5Minutes("ssdpDiscover")
+}
+
 
 // UPNP Device Discovery Code
 def deviceDiscovery() {
@@ -40,8 +62,8 @@ def deviceDiscovery() {
     	log.debug("Add Manual device-- IP:${controllerIP}:${controllerPort}=${controllerMac}")
     	def newdevices = getDevices()           
         newdevices[controllerMac] = [ 
-        				networkAddress:controllerIP,
-                        deviceAddress:controllerPort ,
+        				ipaddress:controllerIP,
+                        port:controllerPort,
                         verified:false,
                         mac:controllerMac,
                         hub:"",
@@ -58,18 +80,25 @@ def deviceDiscovery() {
 	ssdpSubscribe()
 	ssdpDiscover()
 	verifyDevices()
-         
 	return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "poolConfig", refreshInterval: 5, install: false, uninstall: true) {		
-        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...Select your device below once discovered.", hideable:false, hidden:false) {
+        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\rSelect your device below once discovered.", hideable:false, hidden:false) {
 			input "selectedDevice", "enum", required: false, title: "Select A Device (${options.size() ?: 0} found)", multiple: false, options: options
 		}
-        section("Manual poolController Configuration (Optional, if discovery does not work)", hideable:true, hidden:false) {
-        	input "controllerIP", "text", title: "Controller IP Address", required: false, displayDuringSetup: true, defaultValue:""
-          	input "controllerPort", "port", title: "Controller Port", required: false, displayDuringSetup: true, defaultValue:"3000"
-          	input "controllerMac", "text", title: "Controller MAC Address (all capitals, no colins 'AABBCC112233)", required: false, displayDuringSetup: true
+        section("Manual poolController Configuration", hideable:true, hidden:false) {
+            href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
         }
         
 	}
+}
+
+def manualPage() {
+    return dynamicPage(name: "manualController", title: "Enter Controller", nextPage: "deviceDiscovery", refreshInterval: 0, install: false, uninstall: false) {
+		section("Controller") {
+            input(name:"controllerIP", type: "text", title: "Controller IP Address", required: true, displayDuringSetup: true, defaultValue:"")
+          	input(name:"controllerPort", type: "number", title: "Controller Port", required: true, displayDuringSetup: true, defaultValue:"3000")
+          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (all capitals, no colins 'AABBCC112233)", required: true, displayDuringSetup: true)
+        }
+    }
 }
 
 // nodejs-PoolController configuration functions
@@ -99,6 +128,8 @@ def poolConfig() {
     	}
 	}
 }
+
+
 
 def getPoolConfig() {
  	state.config=false    
@@ -152,31 +183,6 @@ def parseConfig(resp) {
     log.info "STATE=${state}"
 }
 
-def installed() {
-	log.debug "Installed with settings: ${settings}"
-	initialize()
-}
-
-def updated() {
-	log.debug "Updated with settings: ${settings}"
-	unsubscribe()
-	initialize()
-}
-
-def initialize() {
-	unsubscribe()
-	unschedule()
-
-	ssdpSubscribe()
-
-	if (selectedDevice) {
-		addDevices()
-	}
-    
-	addManualDevice()
-    
-	runEvery5Minutes("ssdpDiscover")
-}
 
 def USN() {
 	return "urn:schemas-upnp-org:device:PoolController:1"
@@ -190,8 +196,7 @@ void ssdpDiscover() {
 
 void ssdpSubscribe() {
 	 if (!state.subscribed) {
-        log.trace "discover_devices: subscribe to location " + USN()
-        //subscribe(location, "ssdpTerm." + USN(), ssdpHandler)
+        log.trace "discover_devices: subscribe to location " + USN()        
      	subscribe(location, null, ssdpHandler, [filterEvents: false])
         state.subscribed = true
      }
@@ -221,7 +226,7 @@ def ssdpHandler(evt) {
             devices << ["${ssdpUSN}": parsedEvent]
         }
     }
-    //log.debug("Devices updated! ${devices}")
+    log.debug("Devices updated! ${devices}")
 }
 
 Map verifiedDevices() {
@@ -238,13 +243,42 @@ Map verifiedDevices() {
 void verifyDevices() {
 	def devices = getDevices().findAll { it?.value?.verified != true }
 	devices.each {
-		int port = convertHexToInt(it.value.deviceAddress)
-		String ip = convertHexToIP(it.value.networkAddress)
+        int port
+        if ( it.value.port ) {
+            port = it.value.port
+        }
+        else {        
+		    port = convertHexToInt(it.value.deviceAddress)
+        }        
+		String ip
+        if (it.value.ipaddress) {
+            ip = it.value.ipaddress
+        }
+        else {
+            ip = convertHexToIP(it.value.networkAddress)
+        }
 		String host = "${ip}:${port}"
-        log.info("Verify UPNP PoolController Device @ http://${host}${it.value.ssdpPath}")
-        log.debug("SENDING HubAction: GET ${it.value.ssdpPath} HTTP/1.1\r\nHOST: $host\r\n\r\n")
+        log.info("Verify UPNP PoolController Device ${it.value.mac} @ http://${host}${it.value.ssdpPath}")
+        log.debug("SENDING HubAction: GET ${it.value.ssdpPath} HTTP/1.1  HOST: ${host}")
 		sendHubCommand(new hubitat.device.HubAction("""GET ${it.value.ssdpPath} HTTP/1.1\r\nHOST: $host\r\n\r\n""", hubitat.device.Protocol.LAN, host, [callback: deviceDescriptionHandler]))
 	}
+}
+
+void deviceDescriptionHandler(hubitat.device.HubResponse hubResponse) {	
+	def body = hubResponse.xml
+    log.debug("DevDEscHandler - > ${body}")
+    def devices = getDevices()
+	if (body) {        	
+        def device = devices.find { it?.key?.contains(body?.device?.UDN?.text()) }
+        if (device) {
+            device.value << [name: body?.device?.roomName?.text(), model:body?.device?.modelName?.text(), serialNumber:body?.device?.serialNum?.text(), verified: true]
+            log.info("Verified a device - device.value > ${device.value}")
+        }
+        
+   }
+   else {
+   		log.error("Cannot verify UPNP device - no XML returned check PoolController /device response")
+   }
 }
 
 def getVerifiedDevices() {
@@ -312,22 +346,7 @@ def createOrUpdateDevice(mac,ip,port) {
 
 
 
-void deviceDescriptionHandler(hubitat.device.HubResponse hubResponse) {
-	log.debug("DDHandler - > ${hubResponse}")
-	def body = hubResponse.xml
-    def devices = getDevices()
-	if (body) {        	
-        def device = devices.find { it?.key?.contains(body?.device?.UDN?.text()) }
-        if (device) {
-            device.value << [name: body?.device?.roomName?.text(), model:body?.device?.modelName?.text(), serialNumber:body?.device?.serialNum?.text(), verified: true]
-            log.info("Verified a device - device.value > ${device.value}")
-        }
-        
-   }
-   else {
-   		log.error("Cannot verify UPNP device - no XML returned check PoolController /device response")
-   }
-}
+
 
 private Integer convertHexToInt(hex) {
 	Integer.parseInt(hex,16)
