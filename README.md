@@ -5,7 +5,7 @@ Copyright (C) 2017-2019  Brad Sileo / bsileo / brad@sileo.name
 ## Installation Instructions
 
 1. Install and configure Nodejs-Poolcontroller (version 5.3.x is currently supported)
-          https://github.com/tagyoureit/nodejs-poolController/tree/v5.0.0
+          https://github.com/tagyoureit/nodejs-poolController
 2. Update your Nodejs-Poolcontroller installation with the Hubitat interface:
    - Add the file outputToHubittat.js into the "integrations" directory on nodejsPoolController
    - Update your configuration file to enable "OutputToHubitat". Note that the "*" format for an address is NOT supported with Hubitat.
