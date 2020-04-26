@@ -5,10 +5,10 @@
  *
  */
 definition(
-		name: "Pool Controller",
+		name: "Pool Controller 6",
 		namespace: "bsileo",
 		author: "Brad Sileo",
-		description: "This is App to connect to the nodejs_poolController and create devices to manage it within SmartThings",
+		description: "This is App to connect to the nodejs_poolController (version > 6) and create devices to manage it within Hubitat",
 		category: "",
 		iconUrl: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn.png",
 		iconX2Url: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn@2x.png",
@@ -16,52 +16,53 @@ definition(
 
 
 preferences {
-    page(name: "deviceDiscovery", title: "UPnP Device Setup", content: "deviceDiscovery")
+    page(name: "home", title: "Pool Controller", content: "appHome")
+    page(name: "deviceDiscovery", title: "Pool Controller Device Discovery", content: "deviceDiscovery")
     page(name: "manualPage", title: "Manually enter PoolController")
-    page(name: "poolConfig", title: "Pool Configuration", content: "poolConfig") 
+    page(name: "selectDevice", title: "Select the Controller", content: "selectDevice")
+    page(name: "poolConfig", title: "Pool Configuration", content: "poolConfig")
 }
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
-	initialize()
+    initialize()
+    addDevice()
 }
 
 def updated() {
 	log.debug "Updated with settings: ${settings}"
-	unsubscribe()
 	initialize()
+    addDevice()
 }
 
 def initialize() {
 	unsubscribe()
 	unschedule()
-	ssdpSubscribe()
-	if (selectedDevice) {
-		addDevices()
-	}
-	addManualDevice()
-	//runEvery5Minutes("ssdpDiscover")
+    atomicState.subscribed = false
 }
 
 
+def appHome() {
+    def install = true
+    return dynamicPage(name: "home", title: "NodeJS Pool Controller", refreshInterval: 0, install: false, uninstall: true) {
+      section("Device Discovery and Setup", hideable:true, hidden:false) {
+         href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")
+         href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
+      }
+    }
+}
+
 // UPNP Device Discovery Code
 def deviceDiscovery() {
-	def options = [:]
-	def devices = getVerifiedDevices()
-    state.config=false
-    log.debug("DevDisc ${devices}")
-	devices.each {
-    	//log.debug("Processing ${it}-->${it.value}")
-		def value = it.value.name ?: "Pool Controller ${it.value.mac}"
-		def key = it.value.mac
-		options["${key}"] = value
-        //log.debug("SSDP ${key} = ${it.value}")
-	}
-	log.debug("Check Manual device?-- IP:${controllerIP}:${controllerPort}=${controllerMac}")
+    atomicState.config=false
+    ssdpSubscribe()
+    ssdpDiscover()
+	//log.debug("Check Manual device?-- IP:${controllerIP}:${controllerPort}=${controllerMac}")
     if (controllerIP && controllerPort && controllerMac) {
-    	log.debug("Add Manual device-- IP:${controllerIP}:${controllerPort}=${controllerMac}")
-    	def newdevices = getDevices()           
-        newdevices[controllerMac] = [ 
+        def cleanMac = controllerMac.toLowerCase().replaceAll(':','').replaceAll('-','')
+        if (!state.devices[cleanMac]) {
+            log.debug("Add Manual device-- IP:${controllerIP}:${controllerPort}=${controllerMac}")
+            state.devices[cleanMac] = [
         				ipaddress:controllerIP,
                         port:controllerPort,
                         verified:false,
@@ -73,40 +74,92 @@ def deviceDiscovery() {
                         ssdpNTS:"",
                         uuid:"",
                         mode:"",
-                        ssdpUSN:"uuid:806f52f4-1f35-4e33-9299-b827eb3bb77a::urn:schemas-upnp-org:device:PoolController:1"                        
-        				]  	
-                        
+                        ssdpUSN:"uuid:806f52f4-1f35-4e33-9299-b827eb3bb77a::urn:schemas-upnp-org:device:PoolController:1"
+        				]
+        }
+
     }
-	ssdpSubscribe()
-	ssdpDiscover()
-	verifyDevices()
-	return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "poolConfig", refreshInterval: 5, install: false, uninstall: true) {		
-        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\rSelect your device below once discovered.", hideable:false, hidden:false) {
-			input "selectedDevice", "enum", required: false, title: "Select A Device (${options.size() ?: 0} found)", multiple: false, options: options
-		}
+    verifyDevices()
+    return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "selectDevice", refreshInterval: 2, install: false, uninstall: true) {
+        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see it below:", hideable:false, hidden:false) {
+            paragraph describeDevices()
+            input "refreshDiscovery", "button", title: "Refresh"
+	    }
         section("Manual poolController Configuration", hideable:true, hidden:false) {
             href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
         }
-        
 	}
 }
+
+def appButtonHandler(btn) {
+   if(btn == "refreshDiscovery") {
+      // do whatever you want to do when the button is pressed
+      log.debug("Refresh pressed")
+      atomicState.subscribed = false
+      unsubscribe()
+      ssdpSubscribe()
+      ssdpDiscover()
+   }
+}
+
+private String describeDevices() {
+    def sorted = getVerifiedDevices()
+    // log.debug("SORTED ${sorted}")
+    def builder = new StringBuilder()
+    builder << '<ul class="device">'
+    sorted.each {
+        key, device ->
+            def ip = getIP(device)
+            def port = getPort(device)
+            builder << (
+                "<li class='device'>${device.name} ${ip}:${port} (${device.mac})</li>"
+                )
+    }
+    builder << '</ul>'
+    builder.toString()
+}
+
 
 def manualPage() {
     return dynamicPage(name: "manualController", title: "Enter Controller", nextPage: "deviceDiscovery", refreshInterval: 0, install: false, uninstall: false) {
 		section("Controller") {
             input(name:"controllerIP", type: "text", title: "Controller IP Address", required: true, displayDuringSetup: true, defaultValue:"")
           	input(name:"controllerPort", type: "number", title: "Controller Port", required: true, displayDuringSetup: true, defaultValue:"3000")
-          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (all capitals, no colins 'AABBCC112233)", required: true, displayDuringSetup: true)
+          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (AA:BB:CC:11:22:33)", required: true, displayDuringSetup: true)
         }
     }
 }
 
-// nodejs-PoolController configuration functions
-def poolConfig() {	   
+
+
+def selectDevice() {
     unschedule()
+    unsubscribe()
+    atomicState.subscribed = false
+    def options = [:]
+	def devices = getVerifiedDevices()
+	devices.each {
+    	//log.debug("Processing ${it}-->${it.value}")
+        def ip = getIP(it.value)
+        def port = getPort(it.value)
+        def value = "${it.value.name} ${ip}:${port} (${it.value.mac})"
+		def key = it.value.mac
+		options["${key}"] = value
+	}
+    return dynamicPage(name: "selectDevice", title: "Select the Pool Controller...", nextPage: "poolConfig", refreshInterval: 0, install: false, uninstall: true) {
+        section("Select your device:", hideable:false, hidden:false) {
+            input(name: "selectedDevice", title:"Select A Device", type: "enum", required:true, multiple:false, description: "Tap to choose", params: params,
+            	  options: options, submitOnChange: true, width: 6)
+		}
+     }
+}
+
+
+// nodejs-PoolController configuration functions
+def poolConfig() {
     if (state.config) {
     	log.debug("poolConfig STATE=${state}")
-    	return dynamicPage(name: "poolConfig", title: "Verify Final Pool Controller Configuration:", refreshInterval: 0,install: true, uninstall: false) {
+    	return dynamicPage(name: "poolConfig", title: "Verify Final Pool Controller Configuration:", install: true, uninstall: false) {
             section("Name") {
                 input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:"Pool"
             }
@@ -115,15 +168,12 @@ def poolConfig() {
               input name:"includeSpa", type:"bool", title: "Enable Spa?", required:true, defaultValue:state.includeSpa
               input name:"includeChlorinator", type:"bool", title: "Show Chlorinator Section?", required:true, defaultValue:state.includeChlor
               input name:"includeIntellichem", type:"bool", title: "Show Intellichem Section?", required:true, defaultValue:state.includeChem
-              input name:"includeSolar", type:"bool", title: "Enable Solar?", required:true, defaultValue:state.includeSolar             
+              input name:"includeSolar", type:"bool", title: "Enable Solar?", required:true, defaultValue:state.includeSolar
                 }
             }
     	}
     else {
-    	return dynamicPage(name: "poolConfig", title: "Getting Pool Controller Configuration...", nextPage: "poolConfig", refreshInterval: 2, install: false, uninstall: false) {
-		section("Name") {
-        	input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:"Pool"
-        	}
+    	return dynamicPage(name: "poolConfig", title: "Getting Pool Controller Configuration...", nextPage: "poolConfig", refreshInterval: 4, install: false, uninstall: false) {
         getPoolConfig()
     	}
 	}
@@ -132,18 +182,22 @@ def poolConfig() {
 
 
 def getPoolConfig() {
- 	state.config=false    
-    def devMAC = selectedDevice    
+ 	atomicState.config=false
+    def devMAC = selectedDevice
     def devices = getVerifiedDevices()
-    def selectedDeviceInfo = devices.find { it.value.mac == devMAC } 
+    def selectedDeviceInfo = devices.find { it.value.mac == devMAC }
     if (selectedDeviceInfo) {
+        def value = selectedDeviceInfo.value
         log.debug "Configure [${selectedDeviceInfo.value.mac}]"
+        String port = getPort(value)
+		String ip = getIP(value)
+		String host = "${ip}:${port}"
         def params = [
             method: "GET",
-            path: "/all",
+            path: "/config",
             headers: [
-                HOST: "${selectedDeviceInfo.value.networkAddress}:${selectedDeviceInfo.value.deviceAddress}",
-                "Accept":"application/json" 
+                HOST: "${ip}:${port}",
+                "Accept":"application/json"
             ]
         ]
         def opts = [
@@ -164,22 +218,37 @@ def getPoolConfig() {
 }
 
 def parseConfig(resp) {
-    def message = parseLanMessage(resp.description)   
+    def message = parseLanMessage(resp.description)
     def msg = message.json
-	log.debug("parseConfig - msg=${msg.config}")    	
+	log.debug("parseConfig - msg=${msg.config}")
     log.debug("parseConfig-circuit - msg=${msg.circuit}")
-    state.includeSolar = msg.config.equipment.solar.installed == 1
-    state.includeChem = msg.config.equipment.intellichem.installed == 1
-    state.includeChlor = msg.config.equipment.chlorinator.installed == 1
+
+    /* state.includeSolar = msg.config.equipment.solar.installed == 1
     state.includeSpa = msg.config.equipment.spa.installed == 1
-    state.pumps = msg.config.equipment.pump
     state.controller = msg.config.equipment.controller
-    state.circuitHudeAux = msg.config.equipment.circuit.hideAux
+    state.circuitHideAux = msg.config.equipment.circuit.hideAux
     state.numCircuits =  msg.config.equipment.circuit.nonLightCircuit.size() + msg.config.equipment.circuit.lightCircuit.size()
     state.nonLightCircuits = msg.config.equipment.circuit.nonLightCircuit
-    state.lightCircuits = msg.config.equipment.circuit.lightCircuit
-    state.circuitData = msg.circuit
+    state.lightCircuits = msg.config.equipment.circuit.lightCircuit */
+
+    state.bodies = msg.bodies
+    state.pumps = msg.pumps
+    state.circuits = msg.circuits
+    // state.includeChem = msg.intellichem.installed == 1
+    // state.includeChlor = msg.chlorinators[0].isActive > 0
+    state.equipment = msg.equipment
+    state.pumps = msg.pumps
+    state.features = msg.features
+    state.valves = msg.valves
     state.config=true
+
+    // Extra data not currently used
+    state.controllerType = msg.controllerType
+    state.pool = msg.pool
+    state.configVersion = msg.configVersion
+    state.schedules = msg.schedules
+    state.lastUpdated = msg.lastUpdated
+
     log.info "STATE=${state}"
 }
 
@@ -189,31 +258,31 @@ def USN() {
 }
 
 void ssdpDiscover() {
-	def searchTarget = "lan discovery " + USN()
-    //log.debug("Send command '${searchTarget}'")
-	sendHubCommand(new hubitat.device.HubAction("${searchTarget}", hubitat.device.Protocol.LAN))
+    def searchTarget = "lan discovery " + USN()
+    sendHubCommand(new hubitat.device.HubAction("${searchTarget}", hubitat.device.Protocol.LAN))
 }
 
 void ssdpSubscribe() {
-	 if (!state.subscribed) {
-        log.trace "discover_devices: subscribe to location " + USN()        
+	 if (!atomicState.subscribed) {
+        log.trace "Discover Devices: subscribe to location " + USN()
      	subscribe(location, null, ssdpHandler, [filterEvents: false])
-        state.subscribed = true
+        // subscribe(USN(), null, ssdpHandler, [filterEvents: false])
+        atomicState.subscribed = true
      }
 }
 
 def ssdpHandler(evt) {
 	def description = evt.description
 	def hub = evt?.hubId
-
 	def parsedEvent = parseLanMessage(description)
 	parsedEvent << ["hub":hub]
- 	if (parsedEvent?.ssdpTerm?.contains("urn:schemas-upnp-org:device:PoolController:1")) {       
+    //log.debug("SDP Handler - ${parsedEvent}")
+ 	if (parsedEvent?.ssdpTerm?.contains("urn:schemas-upnp-org:device:PoolController:1")) {
 		def devices = getDevices()
         String ssdpUSN = parsedEvent.ssdpUSN.toString()
-        // log.debug("GET SSDP - found a pool ${parsedEvent}")        
-        if (devices."${ssdpUSN}") {
-            def d = devices."${ssdpUSN}"
+        //log.debug("GET SSDP - found a pool ${ssdpUSN}")
+        if (devices."${parsedEvent.mac}") {
+            def d = devices."${parsedEvent.mac}"
             if (d.networkAddress != parsedEvent.networkAddress || d.deviceAddress != parsedEvent.deviceAddress) {
                 d.networkAddress = parsedEvent.networkAddress
                 d.deviceAddress = parsedEvent.deviceAddress
@@ -223,80 +292,85 @@ def ssdpHandler(evt) {
                 }
             }
         } else {
-            devices << ["${ssdpUSN}": parsedEvent]
+            //log.debug("Adding to Devices to be verified")
+            parsedEvent.verified = false
+            atomicState.devices[parsedEvent.mac] = parsedEvent
+            state.devices[parsedEvent.mac] = parsedEvent
         }
+    } else {
+        // log.debug("Not matching parsed event received - ${parsedEvent}")
     }
-    log.debug("Devices updated! ${devices}")
-}
-
-Map verifiedDevices() {
-	def devices = getVerifiedDevices()
-	def map = [:]
-	devices.each {
-		def value = it.value.name ?: "UPnP Device ${it.value.ssdpUSN.split(':')[1][-3..-1]}"
-		def key = it.value.mac
-		map["${key}"] = value
-	}
-	map
-}
-
-void verifyDevices() {
-	def devices = getDevices().findAll { it?.value?.verified != true }
-	devices.each {
-        int port
-        if ( it.value.port ) {
-            port = it.value.port
-        }
-        else {        
-		    port = convertHexToInt(it.value.deviceAddress)
-        }        
-		String ip
-        if (it.value.ipaddress) {
-            ip = it.value.ipaddress
-        }
-        else {
-            ip = convertHexToIP(it.value.networkAddress)
-        }
-		String host = "${ip}:${port}"
-        log.info("Verify UPNP PoolController Device ${it.value.mac} @ http://${host}${it.value.ssdpPath}")
-        log.debug("SENDING HubAction: GET ${it.value.ssdpPath} HTTP/1.1  HOST: ${host}")
-		sendHubCommand(new hubitat.device.HubAction("""GET ${it.value.ssdpPath} HTTP/1.1\r\nHOST: $host\r\n\r\n""", hubitat.device.Protocol.LAN, host, [callback: deviceDescriptionHandler]))
-	}
-}
-
-void deviceDescriptionHandler(hubitat.device.HubResponse hubResponse) {	
-	def body = hubResponse.xml
-    log.debug("DevDEscHandler - > ${body}")
-    def devices = getDevices()
-	if (body) {        	
-        def device = devices.find { it?.key?.contains(body?.device?.UDN?.text()) }
-        if (device) {
-            device.value << [name: body?.device?.roomName?.text(), model:body?.device?.modelName?.text(), serialNumber:body?.device?.serialNum?.text(), verified: true]
-            log.info("Verified a device - device.value > ${device.value}")
-        }
-        
-   }
-   else {
-   		log.error("Cannot verify UPNP device - no XML returned check PoolController /device response")
-   }
 }
 
 def getVerifiedDevices() {
-	getDevices().findAll{ it.value.verified == true }
+	getDevices().findAll{ key, value -> value.verified == true }
 }
 
-def getDevices() {	
-	if (!state.devices) {
+def getDevices() {
+	if (!atomicState.devices) {
+        log.debug("RESET AS DEVICES")
+		atomicState.devices = [:]
+	}
+    if (!state.devices) {
+        log.debug("RESET DEVICES")
 		state.devices = [:]
 	}
 	return state.devices
 }
 
-def addDevices() {
+void verifyDevices() {
+	def devices = getDevices()
+    //log.debug("VerifyDevices(pre) - ${devices}")
+    devices = devices.findAll { key, value ->
+        value.verified != true
+    }
+    //log.debug("VerifyDevices - ${devices}")
+	devices.each { key, value ->
+        String port = getPort(value)
+		String ip = getIP(value)
+		String host = "${ip}:${port}"
+        log.info("Verify UPNP PoolController Device ${value.mac} @ http://${host}${value.ssdpPath}")
+        //log.debug("SENDING HubAction: GET ${value.ssdpPath} HTTP/1.1  HOST: ${host}")
+		sendHubCommand(new hubitat.device.HubAction("""GET ${value.ssdpPath} HTTP/1.1\r\nHOST: $host\r\n\r\n""", hubitat.device.Protocol.LAN, host, [callback: deviceDescriptionHandler]))
+	}
+}
+
+void deviceDescriptionHandler(hubitat.device.HubResponse hubResponse) {
+	def body = hubResponse.xml
+    log.debug("DevDescHandler - > ${body}")
+    def devices = getDevices()
+    log.debug("DevDescHandler -devs- > ${devices}")
+	if (body) {
+        log.debug("DDH -UDN--> ${body.device.UDN?.text()}")
+        def device = devices.find {
+            def cleanUDN = body.device.UDN.text().toLowerCase().replaceAll(':','').replaceAll('-','')
+            def cleanKey = it?.key?.toLowerCase()
+            log.debug(cleanUDN)
+            log.debug(cleanKey)
+            log.debug(cleanUDN.contains(cleanKey))
+            return cleanUDN.contains(cleanKey)
+        }
+        log.info("VERYFY ${device.key} - ${body}")
+        if (device) {
+            device.value << [name: body?.device?.friendlyName?.text(), model:body?.device?.modelName?.text(), serialNumber:body?.device?.serialNum?.text(), verified: true]
+            device.value.verified = true
+            log.info("Verified a device - device.value == ${device}")
+        }
+        else {
+            log.error("Cannot verify Device - Device Not found")
+        }
+    }
+    else {
+        log.error("Cannot verify Device - No body in Device Response")
+    }
+}
+
+
+def addDevice() {
 	def devices = getDevices()
 	def selectedDeviceInfo = devices.find { it.value.mac == selectedDevice }
-    if (selectedDeviceInfo) {        	
-        createOrUpdateDevice(selectedDeviceInfo.value.mac,selectedDeviceInfo.value.networkAddress,selectedDeviceInfo.value.deviceAddress)			
+    if (selectedDeviceInfo) {
+        createOrUpdateDevice(selectedDeviceInfo.value.mac,getIP(selectedDeviceInfo.value),getPort(selectedDeviceInfo.value))
     }
 }
 
@@ -305,48 +379,51 @@ def addManualDevice() {
 }
 
 def createOrUpdateDevice(mac,ip,port) {
-	def hub = location.hubs[0]     
-	//log.error("WARNING Using TEST MAC")    
+	def hub = location.hubs[0]
+	//log.error("WARNING Using TEST MAC")
     //mac = mac + "-test"
 	def d = getChildDevice(mac)
     if (d) {
-        log.info "The Pool Controller Device with dni: ${mac} already exists...cleanup config"        
+        log.info "The Pool Controller Device with dni: ${mac} already exists...update config to ${ip}:${port}"
         d.updateDataValue("controllerIP",ip)
         d.updateDataValue("controllerPort",port)
-        d.updateDataValue("includeChlorinator",includeChlorinator?'true':'false')
-        d.updateDataValue("includeIntellichem",includeIntellichem?'true':'false')
-        d.updateDataValue("includeSolar",includeSolar?'true':'false')
-        d.updateDataValue("includeSpa",includeSpa?'true':'false')
-        d.updateDataValue("numberCircuits",state.numCircuits as String)
-        //these fail due to LazyMap not being supported
-        //d.updateDataValue('nonLightCircuits',state.nonLightCircuits)
-        //d.updateDataValue('lightCircuits',state.lightCircuits)
-        d.manageChildren()
+        d.updated()
    }
    else {
    		log.info "Creating Pool Controller Device with dni: ${mac}"
-		d = addChildDevice("bsileo", "Pentair Pool Controller", mac, hub.id, [
+		d = addChildDevice("bsileo", "Pool Controller", mac, hub.id, [
 			"label": deviceName,
             "completedSetup" : true,
 			"data": [
 				"controllerMac": mac,
 				"controllerIP": ip,
 				"controllerPort": port,
-                "includeChlorinator":includeChlorinator,
-                "includeIntellichem":includeIntellichem,
-                "includeSolar":includeSolar,
-                "includeSpa":includeSpa,
-                "numberCircuits":state.numCircuits,
-                'nonLightCircuits':state.nonLightCircuits,
-                'lightCircuits':state.lightCircuits
 				]
 			])
    }
 }
 
+def getPort(value) {
+    String port
+    if ( value.port ) {
+        port = value.port
+    }
+    else {
+	  port = convertHexToInt(value.deviceAddress)
+    }
+    return port
+}
 
-
-
+def getIP(value) {
+    String ip
+    if (value.ipaddress) {
+        ip = value.ipaddress
+    }
+    else {
+        ip = convertHexToIP(value.networkAddress)
+    }
+    return ip
+}
 
 private Integer convertHexToInt(hex) {
 	Integer.parseInt(hex,16)
