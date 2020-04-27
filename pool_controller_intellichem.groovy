@@ -17,175 +17,112 @@ metadata {
 
 		attribute "pH", "string"
 		attribute "ORP", "string"
-		attribute "flowAlarm", "string"
-		attribute "SI", "string"
-		attribute "setpointpH", "string"
-		attribute "setpointORP", "string"
-		attribute "CYA", "string"
-		attribute "CALCIUMHARDNESS", "string"
-		attribute "TOTALALKALINITY", "string"
-		attribute "tankpH", "string"
-		attribute "tankORP", "string"
-		attribute "modepH", "string"
-		attribute "modeORP", "string"
+        attribute "waterFlow", "string"
+		attribute "salt", "string"
+		attribute "tank1Level", "string"
+		attribute "tank2Level", "string"
+        attribute "status1", "string"
+        attribute "status2", "string"
+        attribute "CYA", "string"
+		attribute "CH", "string"
+        attribute "TA", "string"
+        attribute "SI", "string"
 
 		command "refresh"
 
 	}
+     preferences {
+         section("General:") {
+            input (
+        	name: "configLoggingLevelIDE",
+        	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
+        	type: "enum",
+        	options: [
+        	    "0" : "None",
+        	    "1" : "Error",
+        	    "2" : "Warning",
+        	    "3" : "Info",
+        	    "4" : "Debug",
+        	    "5" : "Trace"
+        	],
+        	defaultValue: "3",
+            displayDuringSetup: true,
+        	required: false
+            )
+        }
+    }
 }
 
 def installed() {
-
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
 def updated() {
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
 def initialize() {
 }
 
-def parse(json)
-{
-	def group;
-    def subjson;
-    def name;
-    def val;
-	json.each { g, s ->
-         group = g;
-         subjson = s;
-         switch (group) {
-        	case "readings":
-            	subjson.each { k, v ->
-                	switch (k) {
-                    	case "PH":
-                            sendEvent(name: "pH", value: v)
-                          break;
-                        case "ORP":
-                            sendEvent(name: "ORP", value: v)
-                          break;
-                        case "WATERFLOW":
-                        	val = v ? "NO FLOW": "Flow OK"
-                            sendEvent(name: "flowAlarm", value: val)
-                          break;
-                        case "SI":
-                            sendEvent(name: "SI", value: v)
-                          break;
-                    }
-                }
-              break;
-            case "settings":
-            	subjson.each { k, v ->
-                	switch (k) {
-                    	case "PH":
-                            sendEvent(name: "setpointpH", value: (v*10))
-                          break;
-                        case "ORP":
-                            sendEvent(name: "setpointORP", value: (v/10))
-                          break;
-                        case "CYA":
-                            sendEvent(name: "CYA", value: v)
-                          break;
-                        case "CALCIUMHARDNESS":
-                            sendEvent(name: "CALCIUMHARDNESS", value: v)
-                          break;
-                        case "TOTALALKALINITY":
-                            sendEvent(name: "TOTALALKALINITY", value: v)
-                          break;
-                    }
-                }
-              break;
-            case "tankLevels":
-                subjson.each { k, v ->
-                	switch (k) {
-                    	case "1":
-                			sendEvent(name: "tankpH", value: v)
-              	  	      break;
-                    	case "2":
-                			sendEvent(name: "tankORP", value: v)
-              	  	      break;
-                     }
-                 }
-              break;
-            case "mode":
-                subjson.each { k, v ->
-                	switch (k) {
-                    	case "1":
-                          switch (v) {
-                            case "85":
-                              sendEvent(name: "modepH", value: "Mixing")
-                            break;
-                            case "21":
-                              sendEvent(name: "modepH", value: "Dosing")
-                            break;
-                            case "101":
-                              sendEvent(name: "modepH", value: "Monitoring")
-                            break;
-                            default:
-                              sendEvent(name: "modepH", value: v)
-                            break;
-                            }
-              	  	      break;
-                    	case "2":
-                          switch (v) {
-							case "32":
-                              sendEvent(name: "modeORP", value: "Mixing")
-                            break;
-                            case "34":
-                              sendEvent(name: "modeORP", value: "Dosing")
-                            break;
-                            default:
-                              sendEvent(name: "modeORP", value: v)
-                            break;
-                          }
-              	  	      break;
-                    }
-                }
-              break;
-         }
-    }
-}
-
-
-// Command Implementations
-def poll() {
-	refresh()
-}
-
 def refresh() {
-    pollDevice()
+    logger("Requested a refresh","info")
+     def params = [
+        uri: getParent().getControllerURI(),
+        path: "/config/intellichem"
+    ]
+    logger("Refresh Intellichem with ${params} - ${data}","debug")
+    asynchttpGet('parseRefresh', params, data)
+    params.path = "/state/intellichem"
+    asynchttpGet('parseRefresh', params, data)
 }
 
-def pollDevice() {
-    parent.poll()
+def parseRefresh (response, data) {
+     if (response.getStatus() == 200) {
+        def json = response.getJson()
+	    json.each { key, v ->
+            switch (key) {
+                case "ph":
+                    sendEvent(name: "pH", value: v)
+                    break;
+                case "ORP":
+                    sendEvent(name: "ORP", value: v)
+                    break;
+                case "waterFlow":
+                    val = v ? "NO FLOW": "Flow OK"
+                    sendEvent(name: "flowAlarm", value: val)
+                    break;
+                 case "salt":
+                    sendEvent(name: "salt", value: v)
+                    break;
+                case "tank1Level":
+                    sendEvent(name: "tank1Level", value: v)
+              	    break;
+                case "tank2Level":
+                    sendEvent(name: "tank2Level", value: v)
+              	    break;
+                case "status1":
+                    sendEvent(name: "status1", value: v)
+              	    break;
+                case "status2":
+                    sendEvent(name: "status2", value: v)
+              	    break;
+                // Start of "STATE" items
+                case "CYA":
+                    sendEvent(name: "CYA", value: v)
+                    break;
+                case "CH":
+                    sendEvent(name: "CH", value: v)
+                    break;
+                case "TA":
+                    sendEvent(name: "TA", value: v)
+                    break;
+                case "SI":
+                    sendEvent(name: "SI", value: v)
+                    break;
+             }
+        }
+     } else {
+         logger("Failed to refresh from server - ${response.getStatus()}","error")
+         logger("Error data is ${response.getErrorMessage()}","error")
+     }
 }
-
-// set the local value for the heatingSetpoint. Does NOT update the parent / Pentair platform!!!
-def setORPSetpoint(v) {
-	def timeNow = now()
-    if (v) {
-    	if (!state.heatingSetpointTriggeredAt || (1 * 2 * 1000 < (timeNow - state.ORPSetpointTriggeredAt))) {
-			state.ORPSetpointTriggeredAt = timeNow
-			sendEvent(name: "ORPSetpoint", value:(state.ORPSetpoint*10), eventType: "ENTITY_UPDATE", displayed: true)
-            // parent.setORPSetpoint(state.ORPSetpoint*10)
-		}
-	}
-}
-
-// set the local value for the heatingSetpoint. Doesd NOT update the parent / Pentair platform!!!
-def setpHSetpoint(v) {
-	log.debug "setpHSetpoint " + v
-	state.pHSetpointTriggeredAt = timeNow
-	sendEvent(name: "pHSetpoint", value:(state.pHSetpoint/10), eventType: "ENTITY_UPDATE", displayed: true)
-    // parent.setpHSetpoint(state.pHSetpoint/10)
-}
-
-def setTankLevelpH(level) {
-	sendEvent("name": "tankpH", "value": level, eventType: "ENTITY_UPDATE", displayed: true)
-    // parent.updateTankpH(device,level)
-}
-
-def setTankLevelORP(level) {
-	sendEvent("name": "tankORP", "value": level, eventType: "ENTITY_UPDATE", displayed: true)
-    //parent.updateTankORP(device,level)
-}
-
