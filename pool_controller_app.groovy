@@ -164,14 +164,10 @@ def poolConfig() {
                 input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:"Pool"
             }
             section("Please verify the options below") {
-              //input name:"numberCircuits", type:"number", title: "How many circuits:", required:true, defaultValue:state.numCircuits
-              input name:"includeSpa", type:"bool", title: "Enable Spa?", required:true, defaultValue:state.includeSpa
-              input name:"includeChlorinator", type:"bool", title: "Show Chlorinator Section?", required:true, defaultValue:state.includeChlor
-              input name:"includeIntellichem", type:"bool", title: "Show Intellichem Section?", required:true, defaultValue:state.includeChem
-              input name:"includeSolar", type:"bool", title: "Enable Solar?", required:true, defaultValue:state.includeSolar
-                }
+              paragraph describeConfig()
             }
-    	}
+       }
+    }
     else {
     	return dynamicPage(name: "poolConfig", title: "Getting Pool Controller Configuration...", nextPage: "poolConfig", refreshInterval: 4, install: false, uninstall: false) {
         getPoolConfig()
@@ -179,7 +175,23 @@ def poolConfig() {
 	}
 }
 
-
+private String describeConfig() {    
+    // log.debug("SORTED ${sorted}")
+    def builder = new StringBuilder()
+    def bodies = state.bodies.findAll{element -> element.isActive}
+    builder << '<ul class="device">'    
+    builder << "<li class='device'>Config Version ${state.configVersion.lastUpdated}</li>"
+    builder << "<li class='device'>Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water</li>"    
+    builder << "<li class='device'>Create ${state.circuits.findAll{element -> element.isActive}.size()} circuits</li>"
+    builder << "<li class='device'>Create ${state.features.findAll{element -> element.isActive}.size()} features</li>"    
+    builder << "<li class='device'>Create ${state.pumps.findAll{element -> element.isActive}.size()} pumps</li>"
+    builder << "<li class='device'>Create ${state.valves.findAll{element -> element.isActive}.size()} valves</li>"
+    builder << "<li class='device'>Create ${state.heaters.findAll{element -> element.isActive}.size()} heaters</li>"
+    builder << "<li class='device'>Create ${state.intellichem.findAll{element -> element.isActive}.size()} intellichems</li>"
+    builder << "<li class='device'>Create ${state.chlorinators.findAll{element -> element.isActive}.size()} chlorinators</li>"    
+    builder << '</ul>'
+    builder.toString()
+}
 
 def getPoolConfig() {
  	atomicState.config=false
@@ -240,6 +252,9 @@ def parseConfig(resp) {
     state.pumps = msg.pumps
     state.features = msg.features
     state.valves = msg.valves
+    state.chlorinators = msg.chlorinators
+    state.intellichem = msg.intellichem
+    state.heaters = msg.heaters
     state.config=true
 
     // Extra data not currently used
