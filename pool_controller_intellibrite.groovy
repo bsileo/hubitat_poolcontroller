@@ -107,15 +107,33 @@ def manageChildren() {
 }
 
 
-def on() {
+def setLightState(state) {
+    def id = getDataValue("circuitID")
+    def body = [id: id, state: state]
+    def params = [
+        uri: getParent().getControllerURI(),
+        path: "/state/circuit/setState",
+        body: body,
+        requestContentType: "application/json",
+        contentType: "application/json"
+    ]
+    logger("Set Intellibrite mode with ${params} - ${data}","debug")
+    asynchttpPut('lightModeCallback', params, data)    
 	sendEvent(name: "switch", value: "on", isStateChange: true, displayed: true)
-
 }
+
+def on() {
+    setLightState(1)
+	sendEvent(name: "switch", value: "on", isStateChange: true, displayed: true)
+}
+
 
 def off() {
+    setLightState(0)
 	sendEvent(name: "switch", value: "off", isStateChange: true, displayed: true)
-
 }
+
+
 
 def componentRefresh(device) {
     logger("Got REFRESH Request from ${device}","debug")
@@ -138,10 +156,13 @@ def componentOff(device) {
 def setLightMode(mode) {
     logger("Going to light mode ${mode}","debug")
     def id = getDataValue("circuitID")
-    def data = [theme: mode]
+    def body = [theme: mode]
     def params = [
         uri: getParent().getControllerURI(),
-        path: "/state/intellibrite/setTheme"
+        path: "/state/intellibrite/setTheme",
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body: body
     ]
     logger("Set Intellibrite mode with ${params} - ${data}","debug")
     asynchttpPut('lightModeCallback', params, data)
