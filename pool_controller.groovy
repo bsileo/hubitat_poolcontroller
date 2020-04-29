@@ -343,7 +343,7 @@ def manageLightGroups() {
                     logger( "Created Intellibrite ${name}" ,"info")
                 }
                 else {
-                    existing.updateDataValue("circuitID",cID)
+                    existing.updateDataValue("circuitID",cID.toString())
                     logger("Found existing ${name} Updated","info")
                 }
             }
