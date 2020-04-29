@@ -263,7 +263,7 @@ def manageChlorinators() {
         if (data.isActive) {
             def name = "chlorinator-${data.id}"
             def label = "${device.displayName} (${name})"
-            def chlor = getChildDNI("chlorinator",data.id)
+            def chlor = getChild("chlorinator",data.id)
             if (!chlor) {
                 chlor = addChildDevice("bsileo","Pool Controller Chlorinator", getChildDNI("chlorinator",data.id),
                                   [completedSetup: true,
