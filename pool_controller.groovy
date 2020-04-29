@@ -13,7 +13,7 @@ metadata {
         capability "Refresh"
         capability "Configuration"
         attribute "LastUpdated", "String"
-        /*command "updateAllLogging",  [[name:"Update All Logging", 
+        /*command "updateAllLogging",  [[name:"Update All Logging",
                                        type: "ENUM",
                                        description: "Pick a logging settings for me and all child devices",
                                        constraints: [
@@ -23,7 +23,7 @@ metadata {
         	                                "3" : "Info",
         	                                "4" : "Debug",
         	                                "5" : "Trace"
-        	                            ]                                      
+        	                            ]
                                       ] ]*/
     }
 
@@ -101,17 +101,17 @@ def manageBodies() {
     def bodies = state.bodies
     bodies.forEach { value ->
         if (value.isActive) {
-            def body = childDevices.find({it.deviceNetworkId == getChildDNI("body ${value.id}")})
+            def body = getChild("body",value.id)
             if (!body) {
                 logger(("Create BODY child device"),"debug")
-                body = addChildDevice("bsileo","Pool Controller Body", getChildDNI("body ${value.id}"),
+                body = addChildDevice("bsileo","Pool Controller Body", getChildDNI("body",value.id),
                     [
-                        label: "${device.displayName} ${value.name}", 
-                        componentName: "body ${value.id}", 
+                        label: "${device.displayName} ${value.name}",
+                        componentName: "body ${value.id}",
                         componentLabel: "${device.displayName} ${value.name} Body",
                         bodyID: value.id,
                         circuitID: value.circuit.toString(),
-                        isComponent:false, 
+                        isComponent:false,
                         completedSetup:true
                     ]
                 )
@@ -126,21 +126,20 @@ def managePumps () {
     def pumps = state.pumps
     pumps.forEach { value ->
         if (value.isActive) {
-            def pName = "Pump ${value.id}"            
+            def pName = "Pump ${value.id}"
             if (value.name != null) { pName = value.name }
-            def pDNI = getChildDNI("pump-${value.id}")
-            def cID = value.circuits ? value.circuits[0].circuit : ''
-            def pump = childDevices.find({it.deviceNetworkId == pDNI})            
+            def pump = getChild("pump",value.id)
             if (!pump) {
-                pump = addChildDevice("bsileo","Pool Controller Pump", pDNI,
-                                 [completedSetup: true, 
-                                    label: "${device.displayName} (${pName})", 
+                def cID = value.circuits ? value.circuits[0].circuit : ''
+                pump = addChildDevice("bsileo","Pool Controller Pump", getChildDNI("pump",value.id),
+                                 [completedSetup: true,
+                                    label: "${device.displayName} (${pName})",
                                     componentLabel:"${device.displayName} (${pName})",
-                                    isComponent:false, 
+                                    isComponent:false,
                                     componentName: pName,
                                     pumpID: value.id.toString(),
                                     pumpType: value.type.toString(),
-                                    circuitID: cID.toString()                                
+                                    circuitID: cID.toString()
                                  ])
                 logger( "Created Pump Child ${pName}","info")
             } else {
@@ -154,17 +153,16 @@ def managePumps () {
 
 def manageHeaters() {
     def heaters = state.heaters
-    heaters.forEach {data ->   
+    heaters.forEach {data ->
         if (data.isActive) {
-            def name = "heater${data.id}"
-            def label = "${device.displayName} (${data.name})"
-            def DNI = getChildDNI("heater-${data.id}")
-            def heat = childDevices.find({it.deviceNetworkId == DNI})
+            def heat = getChild("heater",data.id)
             if (!heat) {
-                heat = addChildDevice("bsileo","Pool Controller Heater", DNI,
-                                  [completedSetup: true, 
-                                   label: label , 
-                                   isComponent:false, 
+                def name = "heater${data.id}"
+                def label = "${device.displayName} (${data.name})"
+                heat = addChildDevice("bsileo","Pool Controller Heater", getChildDNI("heater",data.id),
+                                  [completedSetup: true,
+                                   label: label ,
+                                   isComponent:false,
                                    componentName: name,
                                    bodyID: data.body,
                                    circuitID: data.body,
@@ -182,18 +180,17 @@ def manageHeaters() {
 
 def manageFeatureCircuits() {
     def circuits = state.features
-    circuits.forEach {data ->    	
+    circuits.forEach {data ->
         if (data.isActive) {
-            def auxname = "feature${data.id}"
-            def auxLabel = "${device.displayName} (${data.name})"
-            def auxDNI = getChildDNI(auxname)
             try {
-                def auxButton = childDevices.find({it.deviceNetworkId == auxDNI})
+                def auxButton = getChild("feature",data.id)
                 if (!auxButton) {
+                    def auxname = "feature${data.id}"
+                    def auxLabel = "${device.displayName} (${data.name})"
                 	log.info "Create Feature switch ${auxLabel} Named=${auxname}"
-                    auxButton = addChildDevice("hubitat","Generic Component Switch", auxDNI,
+                    auxButton = addChildDevice("hubitat","Generic Component Switch", getChildDNI("feature",data.id),
                             [
-                                completedSetup: true, 
+                                completedSetup: true,
                                 label: auxLabel,
                                 isComponent:false,
                                 componentName: auxname,
@@ -217,21 +214,20 @@ def manageFeatureCircuits() {
     }
 }
 
-def manageCircuits() {	
+def manageCircuits() {
     def circuits = state.circuits
-    circuits.forEach {data ->    	
+    circuits.forEach {data ->
         if (data.friendlyName == "NOT USED") return
         if (data.isActive) {
             def auxname = "circuit${data.id}"
             def auxLabel = "${device.displayName} (${data.name})"
-            def auxDNI = getChildDNI(auxname)
             try {
-                def auxButton = childDevices.find({it.deviceNetworkId == auxDNI})
+                def auxButton = getChild("circuit",data.id)
                 if (!auxButton) {
                 	log.info "Create Circuit switch ${auxLabel} Named=${auxname}"
-                    auxButton = addChildDevice("hubitat","Generic Component Switch", auxDNI,
+                    auxButton = addChildDevice("hubitat","Generic Component Switch", getChildDNI("circuit",data.id),
                             [
-                                completedSetup: true, 
+                                completedSetup: true,
                                 label: auxLabel,
                                 isComponent:false,
                                 componentName: auxname,
@@ -257,23 +253,22 @@ def manageCircuits() {
 
 
 def manageChlorinators() {
-    def chlors = state.chlorinators    
-    logger("chlors->${chlors}","trace")    
-    if (!chlors) { 
+    def chlors = state.chlorinators
+    logger("chlors->${chlors}","trace")
+    if (!chlors) {
        logger("No Chlorinator devices found","info")
        return
    }
-    chlors.each {data ->   
+    chlors.each {data ->
         if (data.isActive) {
             def name = "chlorinator-${data.id}"
             def label = "${device.displayName} (${name})"
-            def DNI = getChildDNI("chlorinator-${data.id}")
-            def chlor = childDevices.find({it.deviceNetworkId == DNI})
+            def chlor = getChildDNI("chlorinator",data.id)
             if (!chlor) {
-                chlor = addChildDevice("bsileo","Pool Controller Chlorinator", DNI,
-                                  [completedSetup: true, 
-                                   label: label , 
-                                   isComponent:false, 
+                chlor = addChildDevice("bsileo","Pool Controller Chlorinator", getChildDNI("chlorinator",data.id),
+                                  [completedSetup: true,
+                                   label: label ,
+                                   isComponent:false,
                                    componentName: name,
                                    id: data.id,
                                    address: data.address.toString(),
@@ -290,30 +285,29 @@ def manageChlorinators() {
 
 def manageIntellichem() {
    def chems = state.intellichem
-   if (!chems) { 
+   if (!chems) {
        logger("No Intellichem devices found","info")
-       return 
+       return
    }
-   chems.each {data ->    	    
+   chems.each {data ->
         if (data.isActive) {
             def name = "intellichem${data.id}"
             def label = "${device.displayName} (Intellichem ${data.id})"
-            def DNI = getChildDNI(auxname)
             try {
-                def existing = childDevices.find({it.deviceNetworkId == DNI})
+                def existing = getChild("intellichem",data.id)
                 if (!existing) {
                 	log.info "Create Intellichem ${auxLabel} Named=${name}"
-                    existing = addChildDevice("bsileo","Pool Controller Intellichecm", DNI,
+                    existing = addChildDevice("bsileo","Pool Controller Intellichecm", getChildDNI("intellichem",data.id),
                             [
-                                completedSetup: true, 
+                                completedSetup: true,
                                 label: auxLabel,
                                 isComponent:false,
                                 componentName: name,
-                                componentLabel: label                                
+                                componentLabel: label
                              ])
                     logger( "Success - Created ${name}" ,"debug")
                 }
-                else {                   
+                else {
                     logger("Found existing ${name} Updated","info")
                 }
             }
@@ -330,26 +324,25 @@ def manageLightGroups() {
     def light = state.intellibrite
     if (light) {
         if (light.isActive) {
-            def name = "intellibrite${light.id}"
-            def label = "${device.displayName} (Intellibrite ${light.id})"
-            def DNI = getChildDNI(name)
-            def cID = light.circuits ? light.circuits[0].circuit : ''
             try {
-                def existing = childDevices.find({it.deviceNetworkId == DNI})
+                def cID = light.circuits ? light.circuits[0].circuit : ''
+                def existing = getChild("intellibrite",light.id)
                 if (!existing) {
-                	logger("Created Intellibrite Named ${name}","trace")
-                    existing = addChildDevice("bsileo","Pool Controller Intellibrite", DNI,
+                	logger("Creating Intellibrite Named ${name}","trace")
+                    def name = "intellibrite${light.id}"
+                    def label = "${device.displayName} (Intellibrite ${light.id})"
+                    existing = addChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
                             [
-                                completedSetup: true, 
+                                completedSetup: true,
                                 label:label,
                                 isComponent:false,
                                 componentName: name,
-                                componentLabel: label,  
+                                componentLabel: label,
                                 circuitID: cID
                              ])
                     logger( "Created Intellibrite ${name}" ,"info")
                 }
-                else {    
+                else {
                     existing.updateDataValue("circuitID",cID)
                     logger("Found existing ${name} Updated","info")
                 }
@@ -370,7 +363,7 @@ def manageLightGroups() {
 // If process is true, we also manageChildren() after the state is update
 // ******************************************************************
 def refreshConfiguration(process = false) {
-    if (process) {        
+    if (process) {
         sendGet("/config",'configurationCallback')
     } else {
         sendGet("/config",'parseConfiguration')
@@ -402,7 +395,7 @@ def parseConfiguration(response, data) {
     return true
 }
 
-def updateAllLogging(level) {    
+def updateAllLogging(level) {
     levels = ["None" : "0",
         	   "Error" : "1",
         	   "Warning" : "2",
@@ -412,11 +405,11 @@ def updateAllLogging(level) {
     levelID = levels[level]
     logger("LEVEL=${level}->${levelID}","error")
     device.updateSetting("configLoggingLevelIDE", level)
-    state.loggingLevelIDE = levelID  
-    childDevices.each { 
+    state.loggingLevelIDE = levelID
+    childDevices.each {
         try {
-            it.updateSetting("configLoggingLevelIDE", level)      
-            // it.updateSetting("configLoggingLevelIDE", levelID)      
+            it.updateSetting("configLoggingLevelIDE", level)
+            // it.updateSetting("configLoggingLevelIDE", levelID)
         }
         catch (e) {
             logger("Error setting Logging on ${it} - ${e}","trace")
@@ -425,10 +418,10 @@ def updateAllLogging(level) {
     logger("Logging set to level ${level}(${settings.loggingLevelIDE})","info")
 }
 
-def refresh() {   
+def refresh() {
     sendGet("/state/temps", parseTemps)
     sendGet("/config/all", parseConfig)
-    childDevices.each { 
+    childDevices.each {
         try {
             it.refresh()
         }
@@ -438,70 +431,135 @@ def refresh() {
     }
 }
 
-def parse(response, data) {
-  logger( "Parsing ${response.getStatus()}","trace")
-  logger( "Parsing ${response.getData()}","trace")
-}
 
-
-def parseConfig(response, data) {	 
-    if (response.getStatus() == 200) {       
+def parseConfig(response, data) {
+    if (response.getStatus() == 200) {
         def json = response.getJson()
         def lastUpdated = json.lastUpdated
-        sendEvent([[name:"LastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])            	
+        sendEvent([[name:"LastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
 	}
 }
 
 def parseTemps(response, data) {
     logger("Parse Temps ${response.getStatus()} -- ${response.getStatus()==200}","debug")
-    if (response.getStatus() == 200) {       
+    if (response.getStatus() == 200) {
         logger("Process ${response.getJson()}","trace")
-        def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})        
-        def solar = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})        
+        def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
+        def solar = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
         String unit = "°${location.temperatureScale}"
         response.getJson().each {k, v ->
             logger("Process ${k} ${v}","trace")
-           switch (k) {        	
-        	 case "air":                
+           switch (k) {
+        	 case "air":
                 at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])
-            	break 
+            	break
              case "solar":
                 solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${value}${unit}", unit: unit]])
-            	break 
-            default:            
+            	break
+            default:
             	break
           }
         }
 	}
 }
+// **********************************************
+// inbound PARSE
+// **********************************************
+def parse(raw) {
+    logger( "Parsing ${raw}","trace")
+    def msg = parseLanMessage(raw)
+    logger( "Parsing ${msg}","trace")
+    logger( "Full msg: ${msg}","trace")
+    logger( "HEADERS: ${msg.headers}","trace")
+    def type = msg.headers['X-EVENT-TYPE']
+    logger("Parse event of type: ${type}","info")
+    logger( "JSON: ${msg.json}","trace")
+    if (msg.json) {
+        switch(type) {
+            case "temps":
+                if (msg.json.bodies) {parseBodies(msg.json.bodies)}
+                break
+            case "circuit":
+                parseCircuit(msg.json)
+                break
+            case "feature":
+                parseFeature(msg.json)
+                break
+            case "body":
+                parseBody(msg.json)
+                break
+            case "controller":
+                parseController(msg)
+                break
+            case "virtualCircuit":
+                break
+            default:
+                logger( "No handler for incoming event type '${type}'","debug")
+                break
+       }
+    }
+}
+
+
+def parseBodies(bodiesMsg) {
+    logger("Parsing bodies - ${bodiesMsg}","debug")
+    bodies.each { body ->
+        def dni = getChildDNI("body", body.id)
+        def child = getChildDevices().find {element -> element.deviceNetworkID == dni}
+        if (child) {
+            child.parse(body)
+        }
+    }
+}
+
+
+def parseBody(msg) {
+    getChild("body", msg.id)?.parse(msg)
+}
+
+def parseCircuit(msg) {
+    logger("Parsing circuit - ${msg}","debug")
+    def child = getChild("circuit",msg.id)
+    logger("Parsing circuit ${child}")
+    if (child) {
+        def val = msg.isOn ? "On": "Off"
+        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+    }
+}
+
+def parseController(msg) {
+    logger("Parsing controller - ${msg}","debug")
+}
+
+def parseFeature(msg) {
+    logger("Parsing feature - ${msg}","debug")
+    def child = getChild("feature",msg.id)
+    logger("Parsing feature ${child}","trace")
+    if (child) {
+        def val = msg.isOn ? "On": "Off"
+        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+    }
+}
+
+def getChild(type,id) {
+    def dni = getChildDNI(type,id)
+    logger("Find child with ${type}-${id}","trace")
+    return getChildDevices().find { element ->
+        return element.deviceNetworkId == dni
+      }
+}
 
 def getChildCircuit(id) {
 	// get the circuit device given the ID number only (e.g. 1,2,3,4,5,6)
-    logger( "CHECK getChildCircuit:${id}","trace")
-	def children = getChildDevices()
-    def cname = 'circuit' + id
-    def instance = state.intellibriteInstances[id]
-    if (instance) {
-    	cname = "IB${instance}-Main"
-        logger( "IB Light${id}==${cname}","trace")
-    }
-	def dni = getChildDNI(cname)
-    //return childDevices.find {it.deviceNetworkId == dni}
-
-    def theChild
-    children.each { child ->
-    	logger( "CHECK Child for :${dni}==${child}::" + child.deviceNetworkId,"trace")
-        if (child.deviceNetworkId == dni) {
-          logger( "HIT Child for :${id}==${child}","trace")
-          theChild = child
-        }
-    }
-    return theChild
-
+    return getchild("circuit",id)
 }
 
 def getChildDNI(name) {
 	return getDataValue("controllerMac") + "-" + name
+}
+
+def getChildDNI(type, name) {
+    return getDataValue("controllerMac") + "-${type}-${name}"
 }
 
 
@@ -531,7 +589,7 @@ def spaPumpOff() {
 // **********************************
 def componentRefresh(device) {
     logger("Got REFRESH Request from ${device}","trace")
-    
+
 }
 
 def componentOn(device) {
@@ -557,7 +615,7 @@ def setCircuit(circuit, state) {
 }
 
 def setCircuitCallback(response, data) {
-   logger("SetCircuitCallback(status):${response.getStatus()}","debug")   
+   logger("SetCircuitCallback(status):${response.getStatus()}","debug")
 }
 
 // **********************************
@@ -565,7 +623,7 @@ def setCircuitCallback(response, data) {
 // **********************************
 def getHost() {
   def ip = getDataValue('controllerIP')
-  def port = getDataValue('controllerPort')  
+  def port = getDataValue('controllerPort')
   return "${ip}:${port}"
 }
 
@@ -586,7 +644,7 @@ private sendGet(message, aCallback=generalCallback, body="") {
     asynchttpGet(aCallback, params, data)
 }
 
-private sendPut(message, aCallback=generalCallback, body="") {          
+private sendPut(message, aCallback=generalCallback, body="") {
      def params = [
         uri: getControllerURI(),
         path: message,
@@ -595,7 +653,7 @@ private sendPut(message, aCallback=generalCallback, body="") {
         body:body
     ]
     logger("Send PUT to with ${params}","debug")
-    asynchttpPut(aCallBack, params, data)     
+    asynchttpPut(aCallBack, params, data)
 }
 
 private sendDelete(message, aCallback=generalCallback, body="") {

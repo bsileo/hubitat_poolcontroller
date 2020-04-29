@@ -397,20 +397,21 @@ def createOrUpdateDevice(mac,ip,port) {
 	def hub = location.hubs[0]
 	//log.error("WARNING Using TEST MAC")
     //mac = mac + "-test"
-	def d = getChildDevice(mac)
+    def dni = mac.replaceAll("-",'').replaceAll(':','').toUpperCase()
+	def d = getChildDevice(dni)
     if (d) {
-        log.info "The Pool Controller Device with dni: ${mac} already exists...update config to ${ip}:${port}"
+        log.info "The Pool Controller Device with DNI: ${DNI} already exists...update config to ${ip}:${port}"
         d.updateDataValue("controllerIP",ip)
         d.updateDataValue("controllerPort",port)
         d.updated()
    }
    else {
-   		log.info "Creating Pool Controller Device with dni: ${mac}"
-		d = addChildDevice("bsileo", "Pool Controller", mac, hub.id, [
+   		log.info "Creating Pool Controller Device with DNI: ${dni}"
+		d = addChildDevice("bsileo", "Pool Controller", dni, hub.id, [
 			"label": deviceName,
             "completedSetup" : true,
 			"data": [
-				"controllerMac": mac,
+				"controllerMac": dni,
 				"controllerIP": ip,
 				"controllerPort": port,
 				]

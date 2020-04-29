@@ -65,8 +65,17 @@ def manageChildren() {
 	logger( "Pool Controller Body manage Children...","debug")
 }
 
+
+def parse(body) {
+    logger("Parse body - ${body}","trace")
+    sendEvent([name: "setPoint", value: body.setPoint])
+    sendEvent([name: "heatMode", value: body.heatMode.desc])
+    if (body.isOn) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
+    if (body.temp) { sendEvent([name: "temperature", value: body.temp]) }
+}
+
 def refresh() {
-    logger("Requested a refresh","info")    
+    logger("Requested a refresh","info")
     def body = null
     def params = [
         uri: getParent().getControllerURI(),
@@ -74,10 +83,10 @@ def refresh() {
         requestContentType: "application/json",
         contentType: "application/json",
         body:body
-    ]   
+    ]
     asynchttpGet('parseRefresh', params, data)
     params.path = "/state/temps"
-    asynchttpGet('parseRefresh', params, data)    
+    asynchttpGet('parseRefresh', params, data)
 }
 
 def parseRefresh (response, data) {
@@ -91,12 +100,9 @@ def parseRefresh (response, data) {
 def parseBodies(bodies) {
     logger("parseBodies - ${bodies}","debug")
     bodies.each {
-        logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
+        // logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
         if (it.id.toInteger() == getDataValue('bodyID').toInteger()) {
-            sendEvent([name: "setPoint", value: it.setPoint])
-            sendEvent([name: "heatMode", value: it.heatMode.desc])            
-            if (it.isOn) { sendEvent([name: "switch", value: it.isOn ? "On" : "Off" ]) }
-            if (it.temp) { sendEvent([name: "temperature", value: it.temp]) }
+            parse(it)
         }
     }
 }
@@ -107,23 +113,23 @@ def getHeatMode(intModeValue) {
 }
 
 def getHeatModeID(mode) {
-    switch(mode) {                     
-         case "Off": 
+    switch(mode) {
+         case "Off":
             return 0
-            break; 
-         case "Heater": 
+            break;
+         case "Heater":
             return 1
-            break; 
-         case "Solar Pref": 
+            break;
+         case "Solar Pref":
             return 2
-            break; 
+            break;
          case "Solar":
             return 4
-            break; 
-         default: 
+            break;
+         default:
             return 0
             logger("Unknown Heater mode - ${mode}","error")
-            break; 
+            break;
       }
 }
 
@@ -159,11 +165,11 @@ def off() {
     ]
     logger("Turn off body with ${params}","debug")
     asynchttpPut('stateChangeCallback', params, body)
-    sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)   
+    sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)
 }
 
 def stateChangeCallback(response, data) {
-    logger("State Change Response ${response.getStatus()}","trace") 
+    logger("State Change Response ${response.getStatus()}","trace")
     logger("State Change Data ${data}","trace")
 }
 
@@ -195,10 +201,10 @@ def setHeaterMode(mode) {
 }
 
 def setModeCallback(response, data) {
-    logger("Set Mode Response ${response.getStatus()}","trace") 
+    logger("Set Mode Response ${response.getStatus()}","trace")
     logger("Set Mode Data ${data}","trace")
 }
-        
+
 
 def setHeaterSetPoint(setPoint) {
     def id = getDataValue("bodyID")
@@ -216,7 +222,7 @@ def setHeaterSetPoint(setPoint) {
 }
 
 def setPointCallback(response, data) {
-    logger("State Change Response ${response.getStatus()}","trace") 
+    logger("State Change Response ${response.getStatus()}","trace")
     logger("State Change Data ${data}","trace")
 }
 
@@ -224,7 +230,7 @@ def setPointCallback(response, data) {
 
 // INTERNAL Methods
 private getHost() {
-    return getParent().getHost()   
+    return getParent().getHost()
 }
 
 // TEMPERATUE Functions
