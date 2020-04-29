@@ -1,7 +1,9 @@
 # What is the Hubitat Pool Controller?
-A collection of devices designed to interface with a nodejs-poolController instance which is talking on the RS-485 bus to allow viewing and setting pool control options. Includes devices to manage the Pool pump, lights and heater, the spa pump and heater, the chlorinator, and any installed additional "Features".
+A collection of devices designed to interface with a nodejs-poolController instance which is talking on the RS-485 bus to allow viewing and setting pool control options. Includes devices to manage the Pool pump, lights and heater, the spa pump and heater, the chlorinator, all Circuits and Features, and Intellichem devices.
+
 # License
-Copyright (C) 2017-2019  Brad Sileo / bsileo / brad@sileo.name
+Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
+
 ## Installation Instructions
 
 1. Install and configure [Nodejs-Poolcontroller](https://github.com/tagyoureit/nodejs-poolController) (version [NEXT](https://github.com/tagyoureit/nodejs-poolController/tree/next) is required!)
