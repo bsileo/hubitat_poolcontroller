@@ -86,14 +86,12 @@ def manageTempSensors() {
     }
 
 
-    if (getDataValue("includeSolar")=='true') {
-    	def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
-    	if (!solarTemp) {
-    		logger(("Create Solar temp child device"),"debug")
-        	solarTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("solarTemp"),
-                                   [ label: "${device.displayName} Solar Temperature", componentName: "solarTemp", componentLabel: "${device.displayName} Solar Temperature",
-                                    isComponent:false, completedSetup:true])
-    	}
+    def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
+    if (!solarTemp) {
+    	logger(("Create Solar temp child device"),"debug")
+       	solarTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("solarTemp"),
+                                  [ label: "${device.displayName} Solar Temperature", componentName: "solarTemp", componentLabel: "${device.displayName} Solar Temperature",
+                                   isComponent:false, completedSetup:true])
     }
 }
 
@@ -156,9 +154,9 @@ def manageHeaters() {
     heaters.forEach {data ->
         if (data.isActive) {
             def heat = getChild("heater",data.id)
+            def label = "${device.displayName} (${data.name})"
             if (!heat) {
-                def name = "heater${data.id}"
-                def label = "${device.displayName} (${data.name})"
+                def name = "heater${data.id}"                
                 heat = addChildDevice("bsileo","Pool Controller Heater", getChildDNI("heater",data.id),
                                   [completedSetup: true,
                                    label: label ,
@@ -182,10 +180,10 @@ def manageFeatureCircuits() {
     def circuits = state.features
     circuits.forEach {data ->
         if (data.isActive) {
-            try {
+            def auxname = "feature${data.id}"
+            try {                
                 def auxButton = getChild("feature",data.id)
-                if (!auxButton) {
-                    def auxname = "feature${data.id}"
+                if (!auxButton) {                   
                     def auxLabel = "${device.displayName} (${data.name})"
                 	log.info "Create Feature switch ${auxLabel} Named=${auxname}"
                     auxButton = addChildDevice("hubitat","Generic Component Switch", getChildDNI("feature",data.id),
@@ -203,7 +201,7 @@ def manageFeatureCircuits() {
                 else {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
-                    logger("Found existing Aux Switch ${auxname} Updated","info")
+                    logger("Found existing Feature Switch ${auxname} and Updated it","info")
                 }
             }
             catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
