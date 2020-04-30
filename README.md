@@ -13,16 +13,22 @@ Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
    	"address": "192.168.1.XXX",
         "port": "39501"        
    ```
-3. Open the Apps Code, "new App" and then paste the code for the Mast App - [pool_controller_app.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_app.groovy) into it and Save.
+3. Open the Apps Code, "New App" and then either:
+
+- Click Import, then paste in the URL to the file: https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_app.groovy
+
+- Or paste the code for the Master App into it and Save:
+
+	* [pool_controller_app.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_app.groovy) 
      	
 4. Install all of the Drivers into Drivers Code:
      	
-	* [pool_controller.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller.groovy)
-	* [pool_controller_body.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_body.groovy)
-	* [pool_controller_chlorinator.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_chlorinator.groovy)
-	* [pool_controller_heater.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_heater.groovy)
-	* [pool_controller_intellibrite.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_intellibrite.groovy)
-	* [pool_controller_intellichem.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_intellichem.groovy)
+	* [pool_controller.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller.groovy)
+	* [pool_controller_body.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_body.groovy)
+	* [pool_controller_chlorinator.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6//pool_controller_chlorinator.groovy)
+	* [pool_controller_heater.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_heater.groovy)
+	* [pool_controller_intellibrite.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_intellibrite.groovy)
+	* [pool_controller_intellichem.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_intellichem.groovy)
 	* [pool_controller_pump.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_pump.groovy)
 
 
