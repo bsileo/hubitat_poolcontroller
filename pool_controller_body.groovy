@@ -13,6 +13,7 @@ metadata {
        capability "Refresh"
        capability "Configuration"
        capability "Switch"
+       capability "TemperatureMeasurement"
        attribute "setPoint", "Number"
        attribute "heatMode", "String"
        command "setHeaterMode", [[name:"Heater mode*","type":"ENUM","description":"Heater mode to set","constraints":["Off", "Heater", ,"Solar Pref","Solar Only"]]]
@@ -74,8 +75,9 @@ def parse(body) {
     } else {
         sendEvent([name: "heatMode", value: body.heatMode.desc])
     }
+    String unit = "°${location.temperatureScale}"
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
-    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp]) }
+    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }        
 }
 
 def refresh() {
