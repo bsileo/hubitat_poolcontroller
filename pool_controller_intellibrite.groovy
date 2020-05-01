@@ -14,11 +14,16 @@ metadata {
 
         capability "Switch"
         capability "Configuration"
-
+        capability "Refresh"
+        
         command "setLightMode", [[name:"Light mode*",
 			"type":"ENUM","description":"Select an Intellibright mode to set",
 			"constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
 		  ]]
+        
+        attribute "swimDelay", "Boolean"
+        attribute "lightingTheme", "String"
+        attribute "action", "String"
 	  }
       preferences {
          section("General:") {
@@ -44,8 +49,47 @@ metadata {
 
 
 def configure() {
-    manageChildren()
+    refreshConfiguration(true)    
 }
+
+def refreshConfiguration(process = false) {
+    def cid = getDataValue('circuitID')
+    def aCallback = 'parseConfiguration'
+    def body = ''
+    if (process) {
+        aCallback = 'configurationCallback'    
+    def params = [
+        uri: getParent().getControllerURI(),
+        path: "/config/circuit/${cid}/lightThemes",
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]    
+    asynchttpGet(aCallback, params, data)
+}
+}
+
+
+def configurationCallback(response, data) {    
+    if (parseConfiguration(response, data)) {
+        manageChildren()
+    } else {
+        logger("Failed to process configuration ${response}","error")
+    }        
+}
+
+def parseConfiguration(response, data) {
+    if (response.getStatus() == 200) {
+        def msg = response.json
+        logger(msg,"trace")
+        state.colors = msg
+        return true
+    } else {
+        logger("Configuration Failed with code ${response.getStatus()}","error")
+        return false
+    }
+}
+
 
 def installed() {
 	log.debug("Installed Intellibrite Color Light " + device.deviceNetworkId)
@@ -69,40 +113,51 @@ def manageChildren() {
 	def hub = location.hubs[0]
 
 	//def colors = ['Off','On','Color Sync','Color Swim','Color Set', 'Party','Romance','Caribbean','American','Sunset','Royal','Save','Recall','Blue','Green','Red','White','Magenta']
-    def colors = ['Party','Romance','Caribbean','American','Sunset','Royal','Green','Red','White','Magenta','Blue']
+    // def colors = ['Party','Romance','Caribbean','American','Sunset','Royal','Green','Red','White','Magenta','Blue']
 
+    def colors = state.colors
+    
+    def skipModes = ['unknown','save','reset']
+    
  	def displayName
     def deviceID
     def existingButton
     def cDNI
 
 	// Create selected devices
-	colors.each {
-    	logger("Create " + it + " light mode button","debug")
- 	    displayName = "Intellibrite " + it + " mode"
-        deviceID = "intellibrite-${it}"
-        dni = device.deviceNetworkId + "-${it}"
-        existing = childDevices.find({it.deviceNetworkId == dni})
-        if (!existing){
-            try{
-               	def cButton = addChildDevice("hubitat", "Generic Component Switch", dni,
-                    [ label: displayName,
-                     componentName: deviceID,
-                     componentLabel: deviceID,
-                     isComponent:true,
-                     completedSetup:true,
-                     modeName: it
-                    ])
-                logger( "Created Button for ${it} ","info")
-            }
-            catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
-            {
-              logger( "Error! problem creating light mode device. Check your hub to make sure the 'Generic Component Switch is available - " + e ,"error")
-            }
-       } else {
-           logger( "Existing Button for ${it} updated","trace")
-           existing.updateDataValue("modeName",it)
-       }
+	colors.each {          
+        if (! skipModes.contains(it.name)) { 
+            logger("Process ${it} ${it.val}--${it.name}->${it.desc}","trace")
+            displayName = "Intellibrite ${it.desc} mode"
+            deviceID = "intellibrite-${it.name}"
+            dni = device.deviceNetworkId + "-${it.name}"
+            existing = childDevices.find({it.deviceNetworkId == dni})
+            if (!existing){
+                try{
+                    logger("Creating ${it.desc} light mode button","debug")
+                   	def cButton = addChildDevice("hubitat", "Generic Component Switch", dni,
+                        [ label: displayName,
+                         componentName: deviceID,
+                         componentLabel: displayName,
+                         isComponent:true,
+                         completedSetup:true,
+                         modeName: it.name,
+                         modeVal: it.val.toString()
+                        ])
+                    logger( "Created Button for ${it.name} ","info")
+                }
+                catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+                {
+                  logger( "Error! problem creating light mode device. Check your hub to make sure the 'Generic Component Switch is available - " + e ,"error")
+                }      
+           } else {
+               logger( "Existing Button for ${it} Updated","info")
+               existing.updateDataValue("modeName",it.name)
+               existing.updateDataValue("modeVal",it.val.toString())
+           }
+        } else {
+            logger("Skipped ${it} ${it.val}--${it.name}->${it.desc}","trace")
+        }
    }
 }
 
@@ -113,8 +168,35 @@ def parse(msg) {
 }
 
 def refresh() {
-    logger("refresh Intellibrite - ${msg}","trace")
-    logger("Implement refresh Intellibrite - ${msg}","error")
+    logger("refresh Intellibrite - ${msg}","trace")    
+    def body = null
+    def params = [
+        uri: getParent().getControllerURI(),
+        path: "/config/lightGroup/colors",
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpGet('parseRefresh', params, data)
+}
+
+def parseRefresh (response, data) {
+    logger("Parse Refresh ${response.getStatus()} -- ${response.getStatus()==200}","debug")        
+    if (response.getStatus() == 200) {
+        def json = response.getJson()
+        logger("Parse Refresh JSON ${json}","debug")
+        sendEvent([[name: "swimDelay", value: json.swimDelay ? true : false]])
+        sendEvent([[name: "lightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
+        sendEvent([[name: "action", value: json.action.name, descriptionText:"Lighting Action is ${json.action.desc}"]])
+        json.circuits.each {
+            logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
+            if (it.circuit.id.toString() == getDataValue("circuitID").toString()) {
+                 sendEvent([[name: "switch", value: it.circuit.isOn ? 'On' : 'Off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
+            }
+        }
+    } else {
+        logger("Refresh Failed with code ${response.getStatus()}","error")    
+    }
 }
 
 
@@ -154,7 +236,8 @@ def componentRefresh(device) {
 def componentOn(device) {
 	logger("Got ON Request from ${device}","debug")
     def mode = device.getDataValue("modeName")
-	setLightMode(mode)
+    def modeVal = device.getDataValue("modeVal")
+	setLightMode(modeVal)
     device.off()
 }
 
