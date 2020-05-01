@@ -81,9 +81,12 @@ def deviceDiscovery() {
     }
     verifyDevices()
     return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "selectDevice", refreshInterval: 2, install: false, uninstall: true) {
-        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see it below:", hideable:false, hidden:false) {
+        section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see the device you want to connect to in the verified section below:", hideable:false, hidden:false) {
+            paragraph "<h2>Verfied:</h2>"
             paragraph describeDevices()
             input "refreshDiscovery", "button", title: "Refresh"
+            paragraph "<h2>All devices:</h2>"
+            paragraph describeUnverifiedDevices()
 	    }
         section("Manual poolController Configuration", hideable:true, hidden:false) {
             href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
@@ -113,6 +116,23 @@ private String describeDevices() {
             def port = getPort(device)
             builder << (
                 "<li class='device'>${device.name} ${ip}:${port} (${device.mac})</li>"
+                )
+    }
+    builder << '</ul>'
+    builder.toString()
+}
+
+private String describeUnverifiedDevices() {
+    def sorted = getDevices()
+    // log.debug("SORTED ${sorted}")
+    def builder = new StringBuilder()
+    builder << '<ul class="device">'
+    sorted.each {
+        key, device ->
+            def ip = getIP(device)
+            def port = getPort(device)
+            builder << (
+                "<li class='device'>${ip}:${port} (${device.mac})</li>"
                 )
     }
     builder << '</ul>'
@@ -161,7 +181,7 @@ def poolConfig() {
     	log.debug("poolConfig STATE=${state}")
     	return dynamicPage(name: "poolConfig", title: "Verify Final Pool Controller Configuration:", install: true, uninstall: false) {
             section("Name") {
-                input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:"Pool"
+                input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:state.equipment.model
             }
             section("Please verify the options below") {
               paragraph describeConfig()
