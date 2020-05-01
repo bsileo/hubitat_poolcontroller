@@ -107,6 +107,17 @@ def manageChildren() {
 }
 
 
+def parse(msg) {
+    logger("Parse Intellibrite - ${msg}","trace")
+    logger("Implement pare Intellibrite - ${msg}","error")
+}
+
+def refresh() {
+    logger("refresh Intellibrite - ${msg}","trace")
+    logger("Implement refresh Intellibrite - ${msg}","error")
+}
+
+
 def setLightState(state) {
     def id = getDataValue("circuitID")
     def body = [id: id, state: state]

@@ -13,11 +13,14 @@ metadata {
             importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_chlorinator.groovy') {
 		capability "Refresh"
         capability "Switch"
-		attribute "saltPPM", "string"
+		attribute "saltLevel", "string"
+        attribute "targetOutput", "string"
 		attribute "currentOutput", "string"
-		attribute "superChlorinate", "string"
-		attribute "status", "string"
-		attribute "poolSpaSetpoint", "string"
+        attribute "status", "string"
+        attribute "saltRequired", "string"
+        
+		attribute "superChlorinate", "string"		
+		attribute "poolSpaSetpoint", "string"         
     }
     preferences {
          section("General:") {
@@ -58,6 +61,16 @@ def initialize() {
 
 }
 
+def parse(msg) {
+     sendEvent([name: "currentOutput", value: msg.currentOutput])
+     sendEvent([name: "targetOutput", value: msg.targetOutput])
+     sendEvent([name: "saltLevel", value: msg.saltLevel])
+     sendEvent([name: "saltRequired", value: msg.saltRequired ? 'Yes' : 'No'])
+     if (msg.status) {
+         sendEvent([name: "status", value: msg.status.name, descriptionText: "Chlorinator status is ${msg.status.desc}"])
+     }    
+}
+
 // Command Implementations
 def refresh() {
     logger("Requested a refresh","info")
@@ -74,16 +87,10 @@ def parseRefresh (response, data) {
     logger("parseRefresh - ${response.json}","debug")
     try {
         def value = response.getJson()
-        sendEvent([name: "currentOutput", value: value.currentOutput])
-        sendEvent([name: "targetOutput", value: value.targetOutput])
-        sendEvent([name: "saltLevel", value: value.saltLevel])
-        sendEvent([name: "saltRequired", value: value.saltRequired ? 'Yes' : 'No'])
-        if (value.status) {
-            sendEvent([name: "status-${value.status.name}", value: value.status.val])
-        }
+        parse(value)
     }
     catch (e) {
-        logger("Failed to refresh Chlors due to ${e}","error")
+        logger("Failed to refresh Chlorinator due to ${e}","error")
     }
 }
 

@@ -69,9 +69,13 @@ def manageChildren() {
 def parse(body) {
     logger("Parse body - ${body}","trace")
     sendEvent([name: "setPoint", value: body.setPoint])
-    sendEvent([name: "heatMode", value: body.heatMode.desc])
-    if (body.isOn) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
-    if (body.temp) { sendEvent([name: "temperature", value: body.temp]) }
+    if (body.heatMode instanceof java.lang.Integer) {
+        sendEvent([name: "heatMode", value: body.heatMode == 1 ? "Heater" : "Off"])
+    } else {
+        sendEvent([name: "heatMode", value: body.heatMode.desc])
+    }
+    if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
+    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp]) }
 }
 
 def refresh() {
@@ -169,8 +173,8 @@ def off() {
 }
 
 def stateChangeCallback(response, data) {
-    logger("State Change Response ${response.getStatus()}","trace")
-    logger("State Change Data ${data}","trace")
+    logger("State Change Response ${response.getStatus() == 200 ? 'Success' : 'Failed'}","info")
+    logger("State Change Response ${response.getStatus()}","debug")
 }
 
 // **********************************

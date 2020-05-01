@@ -154,7 +154,7 @@ def manageHeaters() {
     heaters.forEach {data ->
         if (data.isActive) {
             def heat = getChild("heater",data.id)
-            def label = "${device.displayName} (${data.name})"
+            def label = "${device.displayName} ${data.name}"
             if (!heat) {
                 def name = "heater${data.id}"                
                 heat = addChildDevice("bsileo","Pool Controller Heater", getChildDNI("heater",data.id),
@@ -184,7 +184,7 @@ def manageFeatureCircuits() {
             try {                
                 def auxButton = getChild("feature",data.id)
                 if (!auxButton) {                   
-                    def auxLabel = "${device.displayName} (${data.name})"
+                    def auxLabel = "${device.displayName} Feature ${data.name}"
                 	log.info "Create Feature switch ${auxLabel} Named=${auxname}"
                     auxButton = addChildDevice("hubitat","Generic Component Switch", getChildDNI("feature",data.id),
                             [
@@ -218,7 +218,7 @@ def manageCircuits() {
         if (data.friendlyName == "NOT USED") return
         if (data.isActive) {
             def auxname = "circuit${data.id}"
-            def auxLabel = "${device.displayName} (${data.name})"
+            def auxLabel = "${device.displayName} Circuit ${data.name}"
             try {
                 def auxButton = getChild("circuit",data.id)
                 if (!auxButton) {
@@ -260,7 +260,7 @@ def manageChlorinators() {
     chlors.each {data ->
         if (data.isActive) {
             def name = "chlorinator-${data.id}"
-            def label = "${device.displayName} (${name})"
+            def label = "${device.displayName} Chlorinator ${data.id}"
             def chlor = getChild("chlorinator",data.id)
             if (!chlor) {
                 chlor = addChildDevice("bsileo","Pool Controller Chlorinator", getChildDNI("chlorinator",data.id),
@@ -290,7 +290,7 @@ def manageIntellichem() {
    chems.each {data ->
         if (data.isActive) {
             def name = "intellichem${data.id}"
-            def label = "${device.displayName} (Intellichem ${data.id})"
+            def label = "${device.displayName} Intellichem ${data.id}"
             try {
                 def existing = getChild("intellichem",data.id)
                 if (!existing) {
@@ -328,7 +328,7 @@ def manageLightGroups() {
                 if (!existing) {
                 	logger("Creating Intellibrite Named ${name}","trace")
                     def name = "intellibrite${light.id}"
-                    def label = "${device.displayName} (Intellibrite ${light.id})"
+                    def label = "${device.displayName} Intellibrite ${light.id}"
                     existing = addChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
                             [
                                 completedSetup: true,
@@ -431,10 +431,12 @@ def refresh() {
 
 
 def parseConfig(response, data) {
-    if (response.getStatus() == 200) {
+    if (response.getStatus() == 200) {        
         def json = response.getJson()
-        def lastUpdated = json.lastUpdated
-        sendEvent([[name:"LastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
+        def date = new Date()
+        sendEvent([[name:"lastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
+        def lastUpdated = json.lastUpdated        
+        sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
 	}
 }
 
@@ -471,11 +473,13 @@ def parse(raw) {
     logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
     logger("Parse event of type: ${type}","info")
-    logger( "JSON: ${msg.json}","trace")
+    logger( "JSON: ${msg.json}","debug")
+    Date date = new Date()
+    sendEvent([[name:"lastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
     if (msg.json) {
         switch(type) {
             case "temps":
-                if (msg.json.bodies) {parseBodies(msg.json.bodies)}
+                if (msg.json.bodies) {parseDevices(msg.json.bodies, 'body')}
                 break
             case "circuit":
                 parseCircuit(msg.json)
@@ -484,37 +488,44 @@ def parse(raw) {
                 parseFeature(msg.json)
                 break
             case "body":
-                parseBody(msg.json)
+                parseDevice(msg.json, 'body')
                 break
             case "controller":
-                parseController(msg)
+                parseController(msg.json)
                 break
             case "virtualCircuit":
                 break
+            case "config":
+                // Need to review this event to see if it is worth processing?
+                //parseConfig(msg.json)
+                break
+            case "pump":
+                parseDevice(msg.json, 'pump')
+                break
+            case "chlorinator":
+                parseDevice(msg.json, 'chlorinator')
+                break
             default:
-                logger( "No handler for incoming event type '${type}'","debug")
+                logger( "No handler for incoming event type '${type}'","warn")
                 break
        }
     }
 }
 
 
-def parseBodies(bodiesMsg) {
-    logger("Parsing bodies - ${bodiesMsg}","debug")
-    bodies.each { body ->
-        def dni = getChildDNI("body", body.id)
-        def child = getChildDevices().find {element -> element.deviceNetworkID == dni}
-        if (child) {
-            child.parse(body)
-        }
+def parseDevices(msg, type) {
+    logger("Parsing ${type} - ${msg}","debug")
+    msg.each { section ->
+       parseDevice(section, type)
     }
 }
-
-
-def parseBody(msg) {
-    getChild("body", msg.id)?.parse(msg)
+  
+def parseDevice(section,type) {
+    logger("Parse Device of ${type} from ${section}","debug")
+    logger("Device is ${getChild(type, section.id)}","trace")
+    getChild(type, section.id)?.parse(section)
 }
-
+    
 def parseCircuit(msg) {
     logger("Parsing circuit - ${msg}","debug")
     def child = getChild("circuit",msg.id)
@@ -525,8 +536,16 @@ def parseCircuit(msg) {
     }
 }
 
+def parseConfig(msg) {
+    parseDevices(msg.bodies, 'body')
+    parseDevices(msg.pumps, 'pump')
+    parseDevices(msg.chlorinators, 'chlorinator')
+    parseDevices(msg.intellichem, 'intellichem')
+}
+
 def parseController(msg) {
     logger("Parsing controller - ${msg}","debug")
+    
 }
 
 def parseFeature(msg) {
