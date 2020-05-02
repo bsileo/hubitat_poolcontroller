@@ -480,7 +480,7 @@ def parse(raw) {
     logger("Parse event of type: ${type}","info")
     logger( "JSON: ${msg.json}","debug")
     Date date = new Date()
-    sendEvent([[name:"lastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
+    sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
     if (msg.json) {
         switch(type) {
             case "temps":
