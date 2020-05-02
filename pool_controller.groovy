@@ -16,7 +16,7 @@ metadata {
         attribute "Freeze", "Boolean"
         attribute "Mode", "String"
         attribute "ConfigControllerLastUpdated", "String"
-        
+
         // Not working....disable for now
         /*command "updateAllLogging",  [[name:"Update All Logging",
                                        type: "ENUM",
@@ -161,7 +161,7 @@ def manageHeaters() {
             def heat = getChild("heater",data.id)
             def label = "${device.displayName} ${data.name}"
             if (!heat) {
-                def name = "heater${data.id}"                
+                def name = "heater${data.id}"
                 heat = addChildDevice("bsileo","Pool Controller Heater", getChildDNI("heater",data.id),
                                   [completedSetup: true,
                                    label: label ,
@@ -186,9 +186,9 @@ def manageFeatureCircuits() {
     circuits.forEach {data ->
         if (data.isActive) {
             def auxname = "feature${data.id}"
-            try {                
+            try {
                 def auxButton = getChild("feature",data.id)
-                if (!auxButton) {                   
+                if (!auxButton) {
                     def auxLabel = "${device.displayName} Feature ${data.name}"
                 	log.info "Create Feature switch ${auxLabel} Named=${auxname}"
                     auxButton = addChildDevice("hubitat","Generic Component Switch", getChildDNI("feature",data.id),
@@ -332,7 +332,7 @@ def manageLightGroups() {
                 def existing = getChild("intellibrite",light.id)
                 if (!existing) {
                 	def name = "intellibrite${light.id}"
-                    logger("Creating Intellibrite Named ${name}","trace")                    
+                    logger("Creating Intellibrite Named ${name}","trace")
                     def label = "${device.displayName} Intellibrite ${light.id}"
                     existing = addChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
                             [
@@ -436,11 +436,11 @@ def refresh() {
 
 
 def parseConfig(response, data) {
-    if (response.getStatus() == 200) {        
+    if (response.getStatus() == 200) {
         def json = response.getJson()
         def date = new Date()
-        sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
-        def lastUpdated = json.lastUpdated        
+        sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}"]])
+        def lastUpdated = json.lastUpdated
         sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
 	}
 }
@@ -480,7 +480,7 @@ def parse(raw) {
     logger("Parse event of type: ${type}","info")
     logger( "JSON: ${msg.json}","debug")
     Date date = new Date()
-    sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
+    sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}"]])
     if (msg.json) {
         switch(type) {
             case "temps":
@@ -500,7 +500,7 @@ def parse(raw) {
                 break
             case "virtualCircuit":
                 break
-            case "config":                
+            case "config":
                 parseConfig(msg.json)
                 break
             case "pump":
@@ -523,13 +523,13 @@ def parseDevices(msg, type) {
        parseDevice(section, type)
     }
 }
-  
+
 def parseDevice(section,type) {
     logger("Parse Device of ${type} from ${section}","debug")
     logger("Device is ${getChild(type, section.id)}","trace")
     getChild(type, section.id)?.parse(section)
 }
-    
+
 def parseCircuit(msg) {
     logger("Parsing circuit - ${msg}","debug")
     def child = getChild("circuit",msg.id)
@@ -550,7 +550,7 @@ def parseConfig(msg) {
 
 def parseController(msg) {
     logger("Parsing controller - ${msg}","debug")
-    
+
 }
 
 def parseFeature(msg) {
@@ -619,12 +619,12 @@ def componentRefresh(device) {
 }
 
 def componentOn(device) {
-	logger("Got ON Request from ${device}","debug")  
+	logger("Got ON Request from ${device}","debug")
 	return setCircuit(device,1)
 }
 
 def componentOff(device) {
-	logger( "Got OFF from ${device}","debug")	
+	logger( "Got OFF from ${device}","debug")
 	return setCircuit(device,0)
 }
 
@@ -633,7 +633,7 @@ def childCircuitID(device) {
 	return toIntOrNull(device.getDataValue("circuitID"))
 }
 
-def setCircuit(device, state) {  
+def setCircuit(device, state) {
   def id = childCircuitID(device)
   logger( "Executing setCircuit with ${device} - ${id} to ${state}","debug")
   sendPut("/state/circuit/setState", setCircuitCallback, [id: id, state: state], [id: id, newState: state, device: device])
