@@ -13,6 +13,11 @@ metadata {
         capability "Refresh"
         capability "Configuration"
         attribute "LastUpdated", "String"
+        attribute "Freeze", "Boolean"
+        attribute "Mode", "String"
+        attribute "ConfigControllerLastUpdated", "String"
+        
+        // Not working....disable for now
         /*command "updateAllLogging",  [[name:"Update All Logging",
                                        type: "ENUM",
                                        description: "Pick a logging settings for me and all child devices",
@@ -326,8 +331,8 @@ def manageLightGroups() {
                 def cID = light.circuits ? light.circuits[0].circuit : ''
                 def existing = getChild("intellibrite",light.id)
                 if (!existing) {
-                	logger("Creating Intellibrite Named ${name}","trace")
-                    def name = "intellibrite${light.id}"
+                	def name = "intellibrite${light.id}"
+                    logger("Creating Intellibrite Named ${name}","trace")                    
                     def label = "${device.displayName} Intellibrite ${light.id}"
                     existing = addChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
                             [
@@ -342,7 +347,7 @@ def manageLightGroups() {
                 }
                 else {
                     existing.updateDataValue("circuitID",cID.toString())
-                    logger("Found existing ${name} Updated","info")
+                    logger("Found existing Intellibrite ${light.id} Updated","info")
                 }
             }
             catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
@@ -434,7 +439,7 @@ def parseConfig(response, data) {
     if (response.getStatus() == 200) {        
         def json = response.getJson()
         def date = new Date()
-        sendEvent([[name:"lastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
+        sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${datePart} ${timePart}}"]])
         def lastUpdated = json.lastUpdated        
         sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
 	}
@@ -451,10 +456,10 @@ def parseTemps(response, data) {
             logger("Process ${k} ${v}","trace")
            switch (k) {
         	 case "air":
-                at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit]])
+                at?.parse([name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit])
             	break
              case "solar":
-                solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${value}${unit}", unit: unit]])
+                solar?.parse([name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${value}${unit}", unit: unit])
             	break
             default:
             	break
@@ -495,9 +500,8 @@ def parse(raw) {
                 break
             case "virtualCircuit":
                 break
-            case "config":
-                // Need to review this event to see if it is worth processing?
-                //parseConfig(msg.json)
+            case "config":                
+                parseConfig(msg.json)
                 break
             case "pump":
                 parseDevice(msg.json, 'pump')
@@ -531,16 +535,17 @@ def parseCircuit(msg) {
     def child = getChild("circuit",msg.id)
     logger("Parsing circuit ${child}")
     if (child) {
-        def val = msg.isOn ? "On": "Off"
+        def val = msg.isOn ? "on": "off"
         child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
     }
 }
 
 def parseConfig(msg) {
-    parseDevices(msg.bodies, 'body')
-    parseDevices(msg.pumps, 'pump')
-    parseDevices(msg.chlorinators, 'chlorinator')
-    parseDevices(msg.intellichem, 'intellichem')
+    // No processing on config messages - these contain invalid data versus the current state so just let them go, use Configure to update
+    //parseDevices(msg.bodies, 'body')
+    //parseDevices(msg.pumps, 'pump')
+    //parseDevices(msg.chlorinators, 'chlorinator')
+    //parseDevices(msg.intellichem, 'intellichem')
 }
 
 def parseController(msg) {
@@ -553,7 +558,7 @@ def parseFeature(msg) {
     def child = getChild("feature",msg.id)
     logger("Parsing feature ${child}","trace")
     if (child) {
-        def val = msg.isOn ? "On": "Off"
+        def val = msg.isOn ? "on": "off"
         child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
     }
 }
@@ -568,7 +573,11 @@ def getChild(type,id) {
 
 def getChildCircuit(id) {
 	// get the circuit device given the ID number only (e.g. 1,2,3,4,5,6)
-    return getchild("circuit",id)
+    // also check for features as it could be one of them!
+    def child = getChild("circuit",id)
+    if (!child) {
+        child = getChild("feature",id)
+    }
 }
 
 def getChildDNI(name) {
@@ -610,29 +619,37 @@ def componentRefresh(device) {
 }
 
 def componentOn(device) {
-	logger("Got ON Request from ${device}","debug")
-    def id = childCircuitID(device)
-	return setCircuit(id,1)
+	logger("Got ON Request from ${device}","debug")  
+	return setCircuit(device,1)
 }
 
 def componentOff(device) {
-	logger( "Got OFF from ${device}","debug")
-	def id = childCircuitID(device)
-	return setCircuit(id,0)
+	logger( "Got OFF from ${device}","debug")	
+	return setCircuit(device,0)
 }
 
 def childCircuitID(device) {
-	logger("CCID---${device}","debug")
+	logger("CCID---${device}","trace")
 	return toIntOrNull(device.getDataValue("circuitID"))
 }
 
-def setCircuit(circuit, state) {
-  logger( "Executing 'set(${circuit}, ${state})'","debug")
-  sendPut("/state/circuit/setState", setCircuitCallback, [id: circuit, state: state],)
+def setCircuit(device, state) {  
+  def id = childCircuitID(device)
+  logger( "Executing setCircuit with ${device} - ${id} to ${state}","debug")
+  sendPut("/state/circuit/setState", setCircuitCallback, [id: id, state: state], [id: id, newState: state, device: device])
 }
 
 def setCircuitCallback(response, data) {
-   logger("SetCircuitCallback(status):${response.getStatus()}","debug")
+    if (response.getStatus() == 200) {
+        logger("Circuit update Succeeded","info")
+        logger("SetCircuitCallback(data):${data}","debug")
+        def dev = data.device
+        def newState = data.newState.toString() == "1" ? 'on' : 'off'
+        logger("SetCircuitCallback-Sending:${newState} to ${dev}","debug")
+        dev.sendEvent([name:'switch', value: newState , textDescription: "Set to ${newState}"])
+    } else {
+        logger("Ciurcuit update failed with code ${response.getStatus()}","error")
+    }
 }
 
 // **********************************
@@ -649,7 +666,7 @@ def getControllerURI(){
     return "http://${host}"
 }
 
-private sendGet(message, aCallback=generalCallback, body="") {
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
     def params = [
         uri: getControllerURI(),
         path: message,
@@ -661,7 +678,7 @@ private sendGet(message, aCallback=generalCallback, body="") {
     asynchttpGet(aCallback, params, data)
 }
 
-private sendPut(message, aCallback=generalCallback, body="") {
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
      def params = [
         uri: getControllerURI(),
         path: message,
@@ -669,8 +686,8 @@ private sendPut(message, aCallback=generalCallback, body="") {
         contentType: "application/json",
         body:body
     ]
-    logger("Send PUT to with ${params}","debug")
-    asynchttpPut(aCallBack, params, data)
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    asynchttpPut(aCallback, params, data)
 }
 
 private sendDelete(message, aCallback=generalCallback, body="") {
@@ -682,7 +699,7 @@ private sendDelete(message, aCallback=generalCallback, body="") {
         body:body
     ]
     logger("Send GET to with ${params}","debug")
-    asynchttpDelete(aCallBack, params, data)
+    asynchttpDelete(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
