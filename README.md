@@ -4,6 +4,9 @@ A collection of devices designed to interface with a nodejs-poolController insta
 # License
 Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
 
+## Note
+This version is NOT compatible with the 5.3.3 version of nodejs-poolController. If you are using that version, considering upgrading! The last deprecated version of this code for use with 5.3.3 is available [here](https://github.com/bsileo/hubitat_poolcontroller/tree/NJPC-5.3.3). There is no forward migration path from that version to this version as all Apps and Driv er have been renamed and refactored. 
+
 ## Installation Instructions
 
 1. Install and configure [Nodejs-Poolcontroller](https://github.com/tagyoureit/nodejs-poolController) (version [NEXT](https://github.com/tagyoureit/nodejs-poolController/tree/next) is required!)
@@ -21,7 +24,7 @@ Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
 
 	* [pool_controller_app.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_app.groovy) 
      	
-4. Install all of the Drivers into Drivers Code:
+4. Install all of the Drivers into Drivers Code following this same procedure:
      	
 	* [pool_controller.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller.groovy)
 	* [pool_controller_body.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_body.groovy)
@@ -32,5 +35,5 @@ Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
 	* [pool_controller_pump.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_pump.groovy)
 
 
-5. Go to Apps, Add User App and create a "Pool Controller" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
+5. Go to Apps, Add User App and create a "Pool Controller 6" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
 6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
