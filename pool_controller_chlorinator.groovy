@@ -18,11 +18,12 @@ metadata {
 		attribute "currentOutput", "string"
         attribute "status", "string"
         attribute "saltRequired", "string"
-        
-		attribute "superChlorHours", "number"		
+
+		attribute "superChlorHours", "number"
+        attribute "superChlor", "boolean"
 		attribute "poolSetpoint", "string"
         attribute "spaSetpoint", "string"
-        
+
         command "setPoolSetpoint", [[name:"Pool Setpoint*",
                                       "type":"ENUM",
                                       "description":"Set the output level for the Pool",
@@ -42,15 +43,16 @@ metadata {
                                                      60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,
                                                      80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
                                                      100]
-                                     ]]         
-         
+                                     ]]
+
         command "setSuperChlorHours", [[name:"Super Chlor Status*",
                                         "type":"ENUM",
+                                        "description":"Turn on/off Super Chlorinate",
                                         "constraints":["On","Off"]
                                         ],
                                         [name:"Super Chlor Hours*",
                                       "type":"ENUM",
-                                      "description":"Set the output level for the Spa",
+                                      "description":"Set the number of hours for Super Chlorinate",
                                       "constraints":[0,1,2,3,4,5,6,7,8]
                                      ]]
     }
@@ -100,10 +102,11 @@ def parse(msg) {
      sendEvent([name: "saltRequired", value: msg.saltRequired ? 'Yes' : 'No'])
      sendEvent([name: "poolSetpoint", value: msg.poolSetpoint])
      sendEvent([name: "spaSetpoint", value: msg.spaSetpoint])
-    sendEvent([name: "superChlorHours", value: msg.superChlorHours])
+     sendEvent([name: "superChlorHours", value: msg.superChlorHours])
+     sendEvent([name: "superChlor", value: msg.superChlor ? true : false])
      if (msg.status) {
          sendEvent([name: "status", value: msg.status.name, descriptionText: "Chlorinator status is ${msg.status.desc}"])
-     }    
+     }
 }
 
 // Command Implementations
@@ -146,7 +149,7 @@ def chlorinatorOff() {
    return chlorinatorUpdate(0,0,0)
 }
 
-def setPoolSetpoint(poolLevel) {    
+def setPoolSetpoint(poolLevel) {
     def params = [
         uri: getParent().getControllerURI(),
         path: "/state/chlorinator/poolSetPoint",
@@ -155,9 +158,9 @@ def setPoolSetpoint(poolLevel) {
         body: [id: getDataValue("id"), setPoint: poolLevel ]
     ]
     data = [device: device, item: 'poolSetpoint', value: poolLevel]
-    
+
     logger("Update Chlorinator with poolSetpoint to ${poolLevel}","info")
-    logger("Update Chlorinator with PUT ${params} - ${data}","debug")    
+    logger("Update Chlorinator with PUT ${params} - ${data}","debug")
     asynchttpPut('updateCallback', params, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
@@ -168,12 +171,12 @@ def setSpaSetpoint(spaLevel) {
         path: "/state/chlorinator/spaSetPoint",
         requestContentType: "application/json",
         contentType: "application/json",
-        body: [id: getDataValue("id"), setPoint: spaLevel ]        
+        body: [id: getDataValue("id"), setPoint: spaLevel ]
     ]
     data = [device: device, item: 'spaSetpoint', value: spaLevel]
-    
+
     logger("Update Chlorinator with spaSetpoint to ${spaLevel}","info")
-    logger("Update Chlorinator with PUT ${params} - ${data}","debug")    
+    logger("Update Chlorinator with PUT ${params} - ${data}","debug")
     asynchttpPut('updateCallback', params, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
@@ -185,25 +188,25 @@ def setSuperChlorHours(status, hours) {
         path: "/state/chlorinator/superChlorHours",
         requestContentType: "application/json",
         contentType: "application/json",
-        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]        
+        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]
     ]
     data = [device: device, item: 'superChlor', value: hours]
-    
+
     logger("Update Chlorinator with SuperChlor to ${hours}","info")
-    logger("Update Chlorinator with PUT ${params} - ${data}","debug")    
+    logger("Update Chlorinator with PUT ${params} - ${data}","debug")
     asynchttpPut('updateCallback', params, data)
-    
+
     def params2 = [
         uri: getParent().getControllerURI(),
         path: "/state/chlorinator/superChlorinate",
         requestContentType: "application/json",
         contentType: "application/json",
-        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]        
+        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]
     ]
-    
+
     logger("Update Chlorinator with SuperChlorinate to ${status}","info")
     asynchttpPut('updateCallback', params2, data)
-    
+
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
@@ -230,7 +233,7 @@ def chlorinatorUpdate(poolLevel = null, spaLevel = null, superChlorHours = null)
 }
 
 def updateCallback(response, data) {
-    if (response.getStatus() == 200) {        
+    if (response.getStatus() == 200) {
         logger("State Change Result ${response.getStatus()}","debug")
         logger("State change complete","info")
     } else {
