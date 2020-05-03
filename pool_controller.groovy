@@ -8,8 +8,7 @@
  */
 
 metadata {
-	definition (name: "Pool Controller", namespace: "bsileo", author: "Brad Sileo",
-                importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller.groovy') {
+	definition (name: "Pool Controller", namespace: "bsileo", author: "Brad Sileo") {
         capability "Refresh"
         capability "Configuration"
         attribute "LastUpdated", "String"
@@ -79,6 +78,7 @@ def manageChildren() {
     manageChlorinators()
     manageIntellichem()
     manageLightGroups()
+    refresh()
 }
 
 def manageTempSensors() {
@@ -456,10 +456,10 @@ def parseTemps(response, data) {
             logger("Process ${k} ${v}","trace")
            switch (k) {
         	 case "air":
-                at?.parse([name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${value}${unit}", unit: unit])
+                at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${v}${unit}", unit: unit]])
             	break
              case "solar":
-                solar?.parse([name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${value}${unit}", unit: unit])
+                solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${v}${unit}", unit: unit]])
             	break
             default:
             	break
