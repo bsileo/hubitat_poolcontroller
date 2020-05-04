@@ -112,9 +112,6 @@ def manageData() {
 def manageChildren() {
 	def hub = location.hubs[0]
 
-	//def colors = ['Off','On','Color Sync','Color Swim','Color Set', 'Party','Romance','Caribbean','American','Sunset','Royal','Save','Recall','Blue','Green','Red','White','Magenta']
-    // def colors = ['Party','Romance','Caribbean','American','Sunset','Royal','Green','Red','White','Magenta','Blue']
-
     def colors = state.colors
     
     def skipModes = ['unknown','save','reset']
@@ -237,7 +234,7 @@ def componentOn(device) {
 	logger("Got ON Request from ${device}","debug")
     def mode = device.getDataValue("modeName")
     def modeVal = device.getDataValue("modeVal")
-	setLightMode(modeVal)
+	setLightModeByVal(modeVal)
     device.off()
 }
 
@@ -248,9 +245,18 @@ def componentOff(device) {
 
 
 def setLightMode(mode) {
-    logger("Going to light mode ${mode}","debug")
+    def child = childDevices.find { it -> it.getDataValue("modeName") == mode.toLowerCase() }
+    logger("Getting value from child ${child}","trace")
+    if (child) {
+        def modeVal = child.getDataValue("modeVal")
+	    setLightModeByVal(modeVal)
+    }
+}
+    
+def setLightModeByVal(modeVal) {
+    logger("Going to light mode ${modeVal}","debug")
     def id = getDataValue("circuitID")
-    def body = [theme: mode]
+    def body = [theme: modeVal]
     def params = [
         uri: getParent().getControllerURI(),
         path: "/state/intellibrite/setTheme",
