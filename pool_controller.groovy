@@ -60,10 +60,12 @@ def configure() {
 
 def installed() {
     refreshConfiguration(true)
+    getHubPlatform()
 }
 
 def updated() {
   refreshConfiguration(true)
+  getHubPlatform()
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
@@ -84,19 +86,18 @@ def manageChildren() {
 def manageTempSensors() {
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
-        logger(("Create Air temp child device"),"debug")
         airTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("airTemp"),
                                  [ label: "${device.displayName} Air Temperature", componentName: "airTemp", componentLabel: "${device.displayName} Air Temperature",
                                   isComponent:false, completedSetup:true])
+        logger(("Created Air temperature child device"),"info")
     }
-
 
     def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
     if (!solarTemp) {
-    	logger(("Create Solar temp child device"),"debug")
        	solarTemp = addChildDevice("hubitat","Generic Component Temperature Sensor", getChildDNI("solarTemp"),
                                   [ label: "${device.displayName} Solar Temperature", componentName: "solarTemp", componentLabel: "${device.displayName} Solar Temperature",
                                    isComponent:false, completedSetup:true])
+        logger(("Created Solar temperature child device"),"info")
     }
 }
 
@@ -118,8 +119,10 @@ def manageBodies() {
                         completedSetup:true
                     ]
                 )
+                 logger( "Created new Body called ${value.name}","info")
             } else {
                 body.updateDataValue("circuitID",value.circuit.toString())
+                logger( "Updated Body called ${value.name}","info")
             }
         }
     }
@@ -144,11 +147,11 @@ def managePumps () {
                                     pumpType: value.type.toString(),
                                     circuitID: cID.toString()
                                  ])
-                logger( "Created Pump Child ${pName}","info")
+                logger( "Created new Pump called ${pName}","info")
             } else {
                 pump.updateDataValue("pumpType",value.type.toString())
                 pump.updateDataValue("circuitID",cID.toString())
-                logger( "Updated Pump Child ${pName}","info")
+                logger( "Updated Pump called ${pName}","info")
             }
         }
     }
@@ -171,11 +174,11 @@ def manageHeaters() {
                                    circuitID: data.body,
                                    componentLabel:label
                                  ])
-                logger( "Created Pool Heat ${label}" ,"info")
+                logger( "Created new Heater called ${label}" ,"info")
             } else {
                 heat.updateDataValue("bodyID", data.body.toString())
                 heat.updateDataValue("circuitID", data.body.toString())
-                logger( "Updated Pool Heat ${label}" ,"debug")
+                logger( "Updated existing Heater called ${label}" ,"info")
             }
         }
     }
@@ -201,17 +204,17 @@ def manageFeatureCircuits() {
                                 typeID: data.type.toString(),
                                 circuitID: data.id.toString()
                              ])
-                    logger( "Success - Created Feature switch ${auxname}" ,"debug")
+                    logger( "Success - Created Feature switch ${data.name}" ,"debug")
                 }
                 else {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
-                    logger("Found existing Feature Switch ${auxname} and Updated it","info")
+                    logger("Found existing Feature Switch for ${data.name} and Updated it","info")
                 }
             }
-            catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+            catch(e)
             {
-                logger( "Failed to create Feature Switch ${auxname}" + e ,"error")
+                logger( "Failed to create Feature Switch for ${ddata.name}" + e ,"error")
             }
         }
     }
@@ -243,12 +246,12 @@ def manageCircuits() {
                 else {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
-                    logger("Found existing Circuit ${auxname} Updated","info")
+                    logger("Found existing Circuit for ${data.name} Updated","info")
                 }
             }
-            catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+            catch(e)
             {
-                logger( "Failed to create Pool Controller Switch ${auxname}" + e ,"error")
+                logger( "Failed to create Pool Controller Circuit for ${data.name}" + e ,"error")
             }
         }
     }
@@ -314,7 +317,7 @@ def manageIntellichem() {
                     logger("Found existing ${name} Updated","info")
                 }
             }
-            catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+            catch(e)
             {
                 logger( "Failed to create Intellichem ${name}" + e ,"error")
             }
@@ -350,7 +353,7 @@ def manageLightGroups() {
                     logger("Found existing Intellibrite ${light.id} Updated","info")
                 }
             }
-            catch(com.hubitat.app.exception.UnknownDeviceTypeException e)
+            catch(e)
             {
                 logger( "Failed to create Intellibrite ${name}-" + e ,"error")
             }
@@ -675,7 +678,12 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    asynchttpGet(aCallback, params, data)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.get(aCallback, params, data)
+    } else {
+        asynchttpGet(aCallback, params, data)
+    }
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
@@ -687,19 +695,13 @@ private sendPut(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
-    asynchttpPut(aCallback, params, data)
-}
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.put(aCallback, params, data)
+    } else {
+        asynchttpPut(aCallback, params, data)
+    }
 
-private sendDelete(message, aCallback=generalCallback, body="") {
-    def params = [
-        uri: getControllerURI(),
-        path: message,
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
-    logger("Send GET to with ${params}","debug")
-    asynchttpDelete(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
@@ -707,122 +709,10 @@ def generalCallback(response, data) {
 }
 
 
-private updateDeviceNetworkID(){
-  setDeviceNetworkId()
-}
 
-
-private setDeviceNetworkId(){
-  	def hex = getDataValue('controllerMac').toUpperCase().replaceAll(':', '')
-    if (device.deviceNetworkId != "$hex") {
-        device.deviceNetworkId = "$hex"
-        logger( "Device Network Id set to ${device.deviceNetworkId}","debug")
-    }
-}
-
-private String convertHostnameToIPAddress(hostname) {
-    def params = [
-        uri: "http://dns.google.com/resolve?name=" + hostname,
-        contentType: 'application/json'
-    ]
-
-    def retVal = null
-
-    try {
-        retVal = httpGet(params) { response ->
-            log.trace "Request was successful, data=$response.data, status=$response.status"
-            //log.trace "Result Status : ${response.data?.Status}"
-            if (response.data?.Status == 0) { // Success
-                for (answer in response.data?.Answer) { // Loop through results looking for the first IP address returned otherwise it's redirects
-                    //log.trace "Processing response: ${answer}"
-                    if (isIPAddress(answer?.data)) {
-                        log.trace "Hostname ${answer?.name} has IP Address ${answer?.data}"
-                        return answer?.data // We're done here (if there are more ignore it, we'll use the first IP address returned)
-                    } else {
-                        log.trace "Hostname ${answer?.name} redirected to ${answer?.data}"
-                    }
-                }
-            } else {
-                log.warn "DNS unable to resolve hostname ${response.data?.Question[0]?.name}, Error: ${response.data?.Comment}"
-            }
-        }
-    } catch (Exception e) {
-        log.warn("Unable to convert hostname to IP Address, Error: $e")
-    }
-
-    //log.trace "Returning IP $retVal for Hostname $hostname"
-    return retVal
-}
-
-
-// gets the address of the Hub
-private getCallBackAddress() {
-    return device.hub.getDataValue("localIP") + ":" + device.hub.getDataValue("localSrvPortTCP")
-}
-
-
-private String convertIPtoHex(ipAddress) {
-    String hex = ipAddress.tokenize( '.' ).collect {  String.format( '%02x', it.toInteger() ) }.join()
-    return hex
-
-}
-
-private String convertPortToHex(port) {
-	String hexport = port.toString().format( '%04x', port.toInteger() )
-    return hexport
-}
-
-// TEMPERATUE Functions
-// Get stored temperature from currentState in current local scale
-
-def getTempInLocalScale(state) {
-	def temp = device.currentState(state)
-	def scaledTemp = convertTemperatureIfNeeded(temp.value.toBigDecimal(), temp.unit).toDouble()
-	return (getTemperatureScale() == "F" ? scaledTemp.round(0).toInteger() : roundC(scaledTemp))
-}
-
-// Get/Convert temperature to current local scale
-def getTempInLocalScale(temp, scale) {
-	def scaledTemp = convertTemperatureIfNeeded(temp.toBigDecimal(), scale).toDouble()
-	return (getTemperatureScale() == "F" ? scaledTemp.round(0).toInteger() : roundC(scaledTemp))
-}
-
-// Get stored temperature from currentState in device scale
-def getTempInDeviceScale(state) {
-	def temp = device.currentState(state)
-	if (temp && temp.value && temp.unit) {
-		return getTempInDeviceScale(temp.value.toBigDecimal(), temp.unit)
-	}
-	return 0
-}
-
-def getTempInDeviceScale(temp, scale) {
-	if (temp && scale) {
-		//API return/expects temperature values in F
-		return ("F" == scale) ? temp : celsiusToFahrenheit(temp).toDouble().round(0).toInteger()
-	}
-	return 0
-}
-
-def roundC (tempC) {
-	return (Math.round(tempC.toDouble() * 2))/2
-}
-
- def toIntOrNull(it) {
+def toIntOrNull(it) {
    return it?.isInteger() ? it.toInteger() : null
  }
-
-def sync(ip, port) {
-	def existingIp = getDataValue("controllerIP")
-	def existingPort = getDataValue("controllerPort")
-	if (ip && ip != existingIp) {
-		updateDataValue("ControllerIP", ip)
-	}
-	if (port && port != existingPort) {
-		updateDataValue("controllerPort", port)
-	}
-}
-
 
 /**
  *  logger()
@@ -858,3 +748,33 @@ private logger(msg, level = "debug") {
             break
     }
 }
+
+// **************************************************************************************************************************
+// SmartThings/Hubitat Portability Library (SHPL)
+// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
+//
+// The following 3 calls are safe to use anywhere within a Device Handler or Application
+//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
+//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
+//    Device Handler or Application
+//
+private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
+private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
+private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
+//
+// The following 3 calls are ONLY for use within the Device Handler or Application runtime
+//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
+//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
+//  - "if (state.isST)" is more efficient than "if (isSTHub)"
+//
+private String getHubPlatform() {
+    if (state?.hubPlatform == null) {
+        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
+        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
+        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
+    }
+    return state.hubPlatform
+}
+private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
+private Boolean getIsHEHub() { (state.isHE) }
+
