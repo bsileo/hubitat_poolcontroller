@@ -16,13 +16,20 @@ metadata {
        capability "TemperatureMeasurement"
        attribute "setPoint", "Number"
        attribute "heatMode", "String"
-       command "setHeaterMode", [[name:"Heater mode*","type":"ENUM","description":"Heater mode to set","constraints":["Off", "Heater", ,"Solar Pref","Solar Only"]]]
-       command "setHeaterSetPoint", [[name:"Heater SetPoint*",
+       if (isHT) {
+           command "setHeaterMode", [[name:"Heater mode*",
+                                      "type":"ENUM",
+                                      "description":"Heater mode to set",
+                                      "constraints":["Off", "Heater", ,"Solar Pref","Solar Only"]]]
+
+           command "setHeaterSetPoint", [[name:"Heater SetPoint*",
                                       "type":"ENUM",
                                       "description":"Set the heater set point",
                                       "constraints":[50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104]
                                      ]]
-	   command "heaterOn"
+        }
+
+        command "heaterOn"
        command "heaterOff"
     }
 
@@ -55,6 +62,7 @@ def configure() {
 
 def installed() {
 	manageChildren()
+    getHubPlatform()
 }
 
 def updated() {
@@ -77,7 +85,7 @@ def parse(body) {
     }
     String unit = "°${location.temperatureScale}"
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
-    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }        
+    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }
 }
 
 def refresh() {
@@ -90,9 +98,20 @@ def refresh() {
         contentType: "application/json",
         body:body
     ]
-    asynchttpGet('parseRefresh', params, data)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.get('parseRefresh', params, data)
+    } else {
+        asynchttpGet('parseRefresh', params, data)
+    }
+
     params.path = "/state/temps"
-    asynchttpGet('parseRefresh', params, data)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.get('parseRefresh', params, data)
+    } else {
+        asynchttpGet('parseRefresh', params, data)
+    }
 }
 
 def parseRefresh (response, data) {
@@ -155,7 +174,12 @@ def on() {
         body:body
     ]
     logger("Turn on body with ${params} - ${body}","debug")
-    asynchttpPut('stateChangeCallback', params, body)
+     if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.put('stateChangeCallback', params, body)
+    } else {
+        asynchttpPut('stateChangeCallback', params, body)
+    }
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
@@ -170,7 +194,12 @@ def off() {
         body:body
     ]
     logger("Turn off body with ${params}","debug")
-    asynchttpPut('stateChangeCallback', params, body)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.put('stateChangeCallback', params, body)
+    } else {
+        asynchttpPut('stateChangeCallback', params, body)
+    }
     sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)
 }
 
@@ -202,7 +231,13 @@ def setHeaterMode(mode) {
         body:body
     ]
     logger("Set Body heatMode with ${params} and ${body}","debug")
-    asynchttpPut('setModeCallback', params, body)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.put('setModeCallback', params, body)
+    } else {
+        asynchttpPut('setModeCallback', params, body)
+    }
+
     sendEvent(name: "heatMode", value: mode)
 }
 
@@ -223,7 +258,12 @@ def setHeaterSetPoint(setPoint) {
         body:body
     ]
     logger("Set Body setPoint with ${params} to ${data}","debug")
-    asynchttpPut('setPointCallback', params, data)
+    if (state.isST) {
+    	include 'asynchttp_v1'
+    	asynchttp_v1.put('setPointCallback', params, data)
+    } else {
+        asynchttpPut('setPointCallback', params, data)
+    }
     sendEvent(name: "setPoint", value: setPoint)
 }
 
@@ -239,56 +279,7 @@ private getHost() {
     return getParent().getHost()
 }
 
-// TEMPERATUE Functions
-// Get stored temperature from currentState in current local scale
 
-def getTempInLocalScale(state) {
-	def temp = device.currentState(state)
-	def scaledTemp = convertTemperatureIfNeeded(temp.value.toBigDecimal(), temp.unit).toDouble()
-	return (getTemperatureScale() == "F" ? scaledTemp.round(0).toInteger() : roundC(scaledTemp))
-}
-
-// Get/Convert temperature to current local scale
-def getTempInLocalScale(temp, scale) {
-	def scaledTemp = convertTemperatureIfNeeded(temp.toBigDecimal(), scale).toDouble()
-	return (getTemperatureScale() == "F" ? scaledTemp.round(0).toInteger() : roundC(scaledTemp))
-}
-
-// Get stored temperature from currentState in device scale
-def getTempInDeviceScale(state) {
-	def temp = device.currentState(state)
-	if (temp && temp.value && temp.unit) {
-		return getTempInDeviceScale(temp.value.toBigDecimal(), temp.unit)
-	}
-	return 0
-}
-
-def getTempInDeviceScale(temp, scale) {
-	if (temp && scale) {
-		//API return/expects temperature values in F
-		return ("F" == scale) ? temp : celsiusToFahrenheit(temp).toDouble().round(0).toInteger()
-	}
-	return 0
-}
-
-def roundC (tempC) {
-	return (Math.round(tempC.toDouble() * 2))/2
-}
-
- def toIntOrNull(it) {
-   return it?.isInteger() ? it.toInteger() : null
- }
-
-def sync(ip, port) {
-	def existingIp = getDataValue("controllerIP")
-	def existingPort = getDataValue("controllerPort")
-	if (ip && ip != existingIp) {
-		updateDataValue("ControllerIP", ip)
-	}
-	if (port && port != existingPort) {
-		updateDataValue("controllerPort", port)
-	}
-}
 
 
 /**
@@ -325,3 +316,32 @@ private logger(msg, level = "debug") {
             break
     }
 }
+
+// **************************************************************************************************************************
+// SmartThings/Hubitat Portability Library (SHPL)
+// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
+//
+// The following 3 calls are safe to use anywhere within a Device Handler or Application
+//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
+//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
+//    Device Handler or Application
+//
+private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
+private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
+private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
+//
+// The following 3 calls are ONLY for use within the Device Handler or Application runtime
+//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
+//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
+//  - "if (state.isST)" is more efficient than "if (isSTHub)"
+//
+private String getHubPlatform() {
+    if (state?.hubPlatform == null) {
+        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
+        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
+        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
+    }
+    return state.hubPlatform
+}
+private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
+private Boolean getIsHEHub() { (state.isHE) }
