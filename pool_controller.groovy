@@ -64,8 +64,7 @@ def installed() {
 }
 
 def updated() {
-  refreshConfiguration(true)
-  getHubPlatform()
+  refreshConfiguration(true)  
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 

@@ -24,7 +24,8 @@ metadata {
 		attribute "poolSetpoint", "string"
         attribute "spaSetpoint", "string"
 
-        command "setPoolSetpoint", [[name:"Pool Setpoint*",
+         if (isHE) {
+            command "setPoolSetpoint", [[name:"Pool Setpoint*",
                                       "type":"ENUM",
                                       "description":"Set the output level for the Pool",
                                       "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
@@ -34,7 +35,7 @@ metadata {
                                                      80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
                                                      100]
                                      ]]
-        command "setSpaSetpoint", [[name:"Spa Setpoint*",
+            command "setSpaSetpoint", [[name:"Spa Setpoint*",
                                       "type":"ENUM",
                                       "description":"Set the output level for the Spa",
                                       "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
@@ -45,7 +46,7 @@ metadata {
                                                      100]
                                      ]]
 
-        command "setSuperChlorHours", [[name:"Super Chlor Status*",
+            command "setSuperChlorHours", [[name:"Super Chlor Status*",
                                         "type":"ENUM",
                                         "description":"Turn on/off Super Chlorinate",
                                         "constraints":["On","Off"]
@@ -55,6 +56,10 @@ metadata {
                                       "description":"Set the number of hours for Super Chlorinate",
                                       "constraints":[0,1,2,3,4,5,6,7,8]
                                      ]]
+         } else {
+             // Commands for SmartThings go here
+         }
+    
     }
     preferences {
          section("General:") {
@@ -80,20 +85,18 @@ metadata {
 
 
 def configure() {
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5        
 }
 
 def installed() {
+   state.loggingLevelIDE = 3
+   getHubPlatform()
 }
 
 def updated() {
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
 }
 
-
-def initialize() {
-
-}
 
 def parse(msg) {
      sendEvent([name: "currentOutput", value: msg.currentOutput])
@@ -277,3 +280,32 @@ private logger(msg, level = "debug") {
             break
     }
 }
+
+// **************************************************************************************************************************
+// SmartThings/Hubitat Portability Library (SHPL)
+// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
+//
+// The following 3 calls are safe to use anywhere within a Device Handler or Application
+//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
+//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
+//    Device Handler or Application
+//
+private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
+private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
+private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
+//
+// The following 3 calls are ONLY for use within the Device Handler or Application runtime
+//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
+//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
+//  - "if (state.isST)" is more efficient than "if (isSTHub)"
+//
+private String getHubPlatform() {
+    if (state?.hubPlatform == null) {
+        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
+        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
+        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
+    }
+    return state.hubPlatform
+}
+private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
+private Boolean getIsHEHub() { (state.isHE) }
