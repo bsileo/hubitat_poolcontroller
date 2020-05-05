@@ -25,6 +25,7 @@ preferences {
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
+    getHubPlatform()
     initialize()
     addDevice()
 }
@@ -214,6 +215,7 @@ private String describeConfig() {
 }
 
 def getPoolConfig() {
+     def hubAction
  	atomicState.config=false
     def devMAC = selectedDevice
     def devices = getVerifiedDevices()
@@ -224,20 +226,38 @@ def getPoolConfig() {
         String port = getPort(value)
 		String ip = getIP(value)
 		String host = "${ip}:${port}"
-        def params = [
-            method: "GET",
-            path: "/config",
-            headers: [
-                HOST: "${ip}:${port}",
-                "Accept":"application/json"
-            ]
-        ]
-        def opts = [
-            callback : 'parseConfig',
-            type: 'LAN_TYPE_CLIENT'
-        ]
+        if (state.isST) {
+           hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: "/config",
+                headers: [
+                    HOST: "${ip}:${port}",
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [    
+                callback : 'parseConfig',
+                type: 'LAN_TYPE_CLIENT'
+               ])            
+        } else {
+            def params = [
+                method: "GET",
+                path: "/config",
+                headers: [
+                    HOST: "${ip}:${port}",
+                    "Accept":"application/json"
+                    ]
+                ]
+            def opts = [
+                callback : 'parseConfig',
+                type: 'LAN_TYPE_CLIENT'
+                ]
+            hubAction = hubitat.device.HubAction.newInstance(params, null, opts)
+        }
         try {
-            sendHubCommand(new hubitat.device.HubAction(params, null, opts))
+            sendHubCommand(hubAction)
             log.debug "SENT: ${params}"
         } catch (e) {
             log.error "something went wrong: $e"
@@ -294,14 +314,23 @@ def USN() {
 
 void ssdpDiscover() {
     def searchTarget = "lan discovery " + USN()
-    sendHubCommand(new hubitat.device.HubAction("${searchTarget}", hubitat.device.Protocol.LAN))
+    if (state.isST) {
+           hubAction = physicalgraph.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)                
+        } else {         
+            hubAction = hubitat.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)
+        }
+        try {
+            sendHubCommand(hubAction)
+            log.debug "SENT: ${hubAction}"
+        } catch (e) {
+            log.error "Something went wrong: $e"
+        }    
 }
 
 void ssdpSubscribe() {
 	 if (!atomicState.subscribed) {
         log.trace "Discover Devices: subscribe to location " + USN()
-     	subscribe(location, null, ssdpHandler, [filterEvents: false])
-        // subscribe(USN(), null, ssdpHandler, [filterEvents: false])
+     	subscribe(location, null, ssdpHandler, [filterEvents: false])        
         atomicState.subscribed = true
      }
 }
@@ -353,7 +382,7 @@ def getDevices() {
 	return state.devices
 }
 
-void verifyDevices() {
+def verifyDevices() {
 	def devices = getDevices()
     //log.debug("VerifyDevices(pre) - ${devices}")
     devices = devices.findAll { key, value ->
@@ -366,11 +395,46 @@ void verifyDevices() {
 		String host = "${ip}:${port}"
         log.info("Verify UPNP PoolController Device ${value.mac} @ http://${host}${value.ssdpPath}")
         //log.debug("SENDING HubAction: GET ${value.ssdpPath} HTTP/1.1  HOST: ${host}")
-		sendHubCommand(new hubitat.device.HubAction("""GET ${value.ssdpPath} HTTP/1.1\r\nHOST: $host\r\n\r\n""", hubitat.device.Protocol.LAN, host, [callback: deviceDescriptionHandler]))
+        if (state.isST) {
+           hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: "${value.ssdpPath}",
+                headers: [
+                    HOST: "${ip}:${port}",
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [    
+                callback : 'deviceDescriptionHandler',
+                type: 'LAN_TYPE_CLIENT'
+               ])            
+        } else {
+            def params = [
+                method: "GET",
+                path: "${value.ssdpPath}",
+                headers: [
+                    HOST: "${ip}:${port}",
+                    "Accept":"application/json"
+                    ]
+                ]
+            def opts = [
+                callback : 'deviceDescriptionHandler',
+                type: 'LAN_TYPE_CLIENT'
+                ]
+            hubAction = hubitat.device.HubAction.newInstance(params, null, opts)
+        }
+        try {
+            sendHubCommand(hubAction)
+            log.debug "SENT: ${params}"
+        } catch (e) {
+            log.error "something went wrong: $e"
+        }
 	}
 }
 
-void deviceDescriptionHandler(hubitat.device.HubResponse hubResponse) {
+def deviceDescriptionHandler(hubResponse) {
 	def body = hubResponse.xml
     log.debug("DevDescHandler - > ${body}")
     def devices = getDevices()
@@ -468,3 +532,32 @@ private Integer convertHexToInt(hex) {
 private String convertHexToIP(hex) {
 	[convertHexToInt(hex[0..1]),convertHexToInt(hex[2..3]),convertHexToInt(hex[4..5]),convertHexToInt(hex[6..7])].join(".")
 }
+
+// **************************************************************************************************************************
+// SmartThings/Hubitat Portability Library (SHPL)
+// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
+//
+// The following 3 calls are safe to use anywhere within a Device Handler or Application
+//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
+//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
+//    Device Handler or Application
+//
+private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
+private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
+private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
+//
+// The following 3 calls are ONLY for use within the Device Handler or Application runtime
+//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
+//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
+//  - "if (state.isST)" is more efficient than "if (isSTHub)"
+//
+private String getHubPlatform() {
+    if (state?.hubPlatform == null) {
+        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
+        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
+        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
+    }
+    return state.hubPlatform
+}
+private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
+private Boolean getIsHEHub() { (state.isHE) }
