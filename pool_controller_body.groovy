@@ -8,12 +8,17 @@
  */
 
 metadata {
-	definition (name: "Pool Controller Body", namespace: "bsileo", author: "Brad Sileo",
-                importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_body.groovy') {
+	definition (name: "Pool Controller Body", namespace: "bsileo", author: "Brad Sileo") {
+
        capability "Refresh"
        capability "Configuration"
        capability "Switch"
        capability "TemperatureMeasurement"
+
+       command "heaterOn"
+       command "heaterOff"
+       command "nextHeaterMode"
+
        attribute "setPoint", "Number"
        attribute "heatMode", "String"
        if (isHE) {
@@ -29,11 +34,9 @@ metadata {
                                      ]]
        } else {
            // ST version of commands goes here
-           
+
        }
 
-        command "heaterOn"
-       command "heaterOff"
     }
 
 	preferences {
@@ -43,38 +46,73 @@ metadata {
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
         	options: [
-        	    "0" : "None",
-        	    "1" : "Error",
-        	    "2" : "Warning",
-        	    "3" : "Info",
-        	    "4" : "Debug",
-        	    "5" : "Trace"
+        	    "None",
+        	    "Error",
+        	    "Warning",
+        	    "Info",
+        	    "Debug",
+        	    "Trace"
         	],
-        	defaultValue: "3",
+        	defaultValue: "Info",
             displayDuringSetup: true,
         	required: false
             )
         }
     }
+
+     tiles (scale:1) {
+            valueTile("temperature","temperature", height:2,width:2) {
+            	state("temperature", label:'${currentValue} °F',
+				backgroundColors:[
+							[value: 32, color: "#ed310c"],
+                            [value: 45, color: "#ed745c"],
+							[value: 55, color: "#edad0c"],
+							[value: 65, color: "#c9cf61"],
+							[value: 75, color: "#75c987"],
+							[value: 85, color: "#61eb34"],
+                            [value: 95, color: "#61eb34"]
+                     ]
+				)
+            }
+            standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
+            	state "off", label: '${currentValue}', action: "switch.on",
+                  icon: "st.switches.switch.off", backgroundColor: "#ffffff"
+            	state "on", label: '${currentValue}', action: "switch.off",
+                  icon: "st.switches.switch.on", backgroundColor: "#00a0dc"
+        }
+            valueTile("setPoint","setPoint", height:1,width:1) { state("default", label:'Set Point: ${currentValue} °F') }
+
+
+            standardTile("heatMode", "heatMode", width:1, height:1, inactiveLabel: false, decoration: "flat") {
+				state "Off",  action:"nextHeaterMode",  nextState: "updating", icon: "st.thermostat.heating-cooling-off", label: "Heater"
+				state "Heater", action:"nextHeaterMode", nextState: "updating", icon: "st.thermostat.heat"
+        		state "Solar Only", label:'${currentValue}', action:"nextHeaterMode",  nextState: "updating", icon: "https://bsileo.github.io/SmartThings_Pentair/solar-only.png"
+            	state "Solar Preferred", label:'${currentValue}', action:"nextHeaterMode",  nextState: "updating", icon: "https://bsileo.github.io/SmartThings_Pentair/solar-preferred.jpg"
+				state "updating", label:"Updating...", icon: "st.Home.home1"
+		}
+            standardTile("refresh", "device.refresh", height:1,width:1,inactiveLabel: false) {
+                state "default", label:'Refresh', action:"refresh.refresh",  icon:"st.secondary.refresh-icon"
+        	}
+        main "temperature"
+        details "temperature", "switch", "setPoint", "heatMode", "refresh"
+
+     }
+
+
 }
 
 def configure() {
   logger( "Executing 'configure()'","info")
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 def installed() {
-	manageChildren()
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
     getHubPlatform()
 }
 
 def updated() {
-  manageChildren()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
-}
-
-def manageChildren() {
-	logger( "Pool Controller Body manage Children...","debug")
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 
@@ -94,30 +132,11 @@ def parse(body) {
 def refresh() {
     logger("Requested a refresh","info")
     def body = null
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/config/options/bodies",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
-    if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.get('parseRefresh', params, data)
-    } else {
-        asynchttpGet('parseRefresh', params, data)
-    }
-
-    params.path = "/state/temps"
-    if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.get('parseRefresh', params, data)
-    } else {
-        asynchttpGet('parseRefresh', params, data)
-    }
+    sendGet("/config/options/bodies", 'parseRefresh', body, data)
+    sendGet("/state/temps", 'parseRefresh', body, data)
 }
 
-def parseRefresh (response, data) {
+def parseRefresh (response, data=null) {
     logger("body.parseRefresh - ${response.json}","debug")
     def bodies = response.json.bodies
     if (bodies) {
@@ -128,6 +147,7 @@ def parseRefresh (response, data) {
 def parseBodies(bodies) {
     logger("parseBodies - ${bodies}","debug")
     bodies.each {
+    	logger("Current body - ${it} id=${it.id}-","debug")
         // logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
         if (it.id.toInteger() == getDataValue('bodyID').toInteger()) {
             parse(it)
@@ -161,6 +181,46 @@ def getHeatModeID(mode) {
       }
 }
 
+def nextHeaterMode() {
+	logger("Going to nextMode()","debug")
+    def currentMode = device.currentValue("heatMode")
+	def supportedModes = getModeMap()
+    def nextIndex = 0;
+    logger("${currentMode} moving to next in ${supportedModes}","debug")
+    supportedModes.eachWithIndex {name, index ->
+    	//log.debug("${index}:${name} -->${nextIndex}  ${name} == ${currentMode}")
+    	if (name == currentMode) {
+        	nextIndex = index + 1
+            return
+         }
+    }
+    logger("nextMode id=${nextIndex}  compare to " + supportedModes.size(),"debug")
+    if (nextIndex >= supportedModes.size()) {nextIndex=0 }
+    log.info("Going to nextMode with id =${nextIndex}  -- ${supportedModes[nextIndex]}")
+    setHeaterMode(supportedModes[nextIndex])
+}
+
+def getModeMap() {
+    def mm = null
+    logger("TODO-fix detecting if Solar is present on Body ModeMap","debug")
+    if (true) {
+    	mm =  ["Off",
+            "Heater",
+        	"Solar Preferred",
+        	"Solar Only"
+     	]
+    }
+    else {
+     mm =
+    	[
+        "OFF",
+        "Heater"
+     	]
+    }
+    return mm
+}
+
+
 def getChildDNI(name) {
 	return getParent().getChildDNI(getDataValue("bodyID") + "-" + name)
 }
@@ -169,40 +229,16 @@ def getChildDNI(name) {
 def on() {
     def id = getDataValue("circuitID")
     def body = [id: id, state: 1]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/circuit/setState",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
     logger("Turn on body with ${params} - ${body}","debug")
-     if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.put('stateChangeCallback', params, body)
-    } else {
-        asynchttpPut('stateChangeCallback', params, body)
-    }
+    sendPut("/state/circuit/setState", 'stateChangeCallback', body, data  )
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
 def off() {
     def id = getDataValue("circuitID")
     def body = [id: id, state: 0]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/circuit/setState",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
     logger("Turn off body with ${params}","debug")
-    if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.put('stateChangeCallback', params, body)
-    } else {
-        asynchttpPut('stateChangeCallback', params, body)
-    }
+    sendPut("/state/circuit/setState", 'stateChangeCallback', body, data  )
     sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)
 }
 
@@ -226,26 +262,13 @@ def heaterOff(spDevice) {
 def setHeaterMode(mode) {
    def id = getDataValue("bodyID")
    def body = [id: id, mode: getHeatModeID(mode)]
-   def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/body/heatMode",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
     logger("Set Body heatMode with ${params} and ${body}","debug")
-    if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.put('setModeCallback', params, body)
-    } else {
-        asynchttpPut('setModeCallback', params, body)
-    }
-
+    sendPut("/state/body/heatMode", 'setModeCallback', body, data )
     sendEvent(name: "heatMode", value: mode)
 }
 
-def setModeCallback(response, data) {
-    logger("Set Mode Response ${response.getStatus()}","trace")
+def setModeCallback(response, data=null) {
+    logger("Set Mode Response ${response.getStatus()}==${response.getJson()}","trace")
     logger("Set Mode Data ${data}","trace")
 }
 
@@ -253,65 +276,150 @@ def setModeCallback(response, data) {
 def setHeaterSetPoint(setPoint) {
     def id = getDataValue("bodyID")
     def body = [id: id, setPoint: setPoint]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/body/setPoint",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
     logger("Set Body setPoint with ${params} to ${data}","debug")
-    if (state.isST) {
-    	include 'asynchttp_v1'
-    	asynchttp_v1.put('setPointCallback', params, data)
-    } else {
-        asynchttpPut('setPointCallback', params, data)
-    }
+    sendPut("/state/body/setPoint", 'setPointCallback', body, data  )
     sendEvent(name: "setPoint", value: setPoint)
 }
 
-def setPointCallback(response, data) {
+def setPointCallback(response, data=null) {
     logger("State Change Response ${response.getStatus()}","trace")
     logger("State Change Data ${data}","trace")
 }
 
 
 
+// **********************************
+// INTERNAL Methods
+// **********************************
+def addHESTChildDevice(namespace, deviceType, dni, options  ) {
+	if (state.isHE) {
+    	return addChildDevice(namespace, deviceType, dni, options)
+	} else {
+    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
+    }
+}
+
 // INTERNAL Methods
 private getHost() {
     return getParent().getHost()
 }
 
+def getControllerURI(){
+    def host = getHost()
+    return "http://${host}"
+}
+
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    if (state.isST) {
+    	 def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+        asynchttpGet(aCallback, params, data)
+    }
+}
+
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    if (state.isST) {
+        def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "PUT",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+     	def params = [
+        	uri: getControllerURI(),
+        	path: message,
+        	requestContentType: "application/json",
+        	contentType: "application/json",
+        	body:body
+    	]
+        asynchttpPut(aCallback, params, data)
+    }
+
+}
+
+def generalCallback(response, data) {
+   logger("Callback(status):${response.getStatus()}","debug")
+}
 
 
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
+def toIntOrNull(it) {
+   return it?.isInteger() ? it.toInteger() : null
+ }
+
+
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
 
 private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
         case "error":
-            if (state.loggingLevelIDE >= 1) log.error msg
+            if (logLevel >= 1) log.error msg
             break
 
         case "warn":
-            if (state.loggingLevelIDE >= 2) log.warn msg
+            if (logLevel >= 2) log.warn msg
             break
 
         case "info":
-            if (state.loggingLevelIDE >= 3) log.info msg
+            if (logLevel >= 3) log.info msg
             break
 
         case "debug":
-            if (state.loggingLevelIDE >= 4) log.debug msg
+            if (logLevel >= 4) log.debug msg
             break
 
         case "trace":
-            if (state.loggingLevelIDE >= 5) log.trace msg
+            if (logLevel >= 5) log.trace msg
             break
 
         default:

@@ -25,14 +25,14 @@ metadata {
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
         	options: [
-        	    "0" : "None",
-        	    "1" : "Error",
-        	    "2" : "Warning",
-        	    "3" : "Info",
-        	    "4" : "Debug",
-        	    "5" : "Trace"
+        	    "None",
+        	    "Error",
+        	    "Warning",
+        	    "Info",
+        	    "Debug",
+        	    "Trace"
         	],
-        	defaultValue: "3",
+        	defaultValue: "Info",
             displayDuringSetup: true,
         	required: false
             )
@@ -42,13 +42,13 @@ metadata {
 
 def installed() {
     initialize()
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
     getHubPlatform()
 }
 
 def updated() {
     initialize()
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
 }
 
 def initialize() {
@@ -56,16 +56,11 @@ def initialize() {
 }
 
 def refresh() {
-    logger("Requested a refresh","info")
-     def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/temps"
-    ]
-    logger("Refresh Heater with ${params} - ${data}","debug")
-    asynchttpGet('parseRefresh', params, data)
+    logger("Requested a refresh","info")         
+    sendGet("/state/temps",'parseRefresh', body, data)    
 }
 
-def parseRefresh (response, data) {
+def parseRefresh (response, data=null) {
     def json = response.getJson()
     logger("parseRefresh - ${json}","debug")
     def bodies = json.bodies
@@ -84,94 +79,152 @@ def parseBodies(bodies) {
         if (it.circuit.toInteger() == getDataValue('bodyID').toInteger()) {
             sendEvent([name: "heatingSetPoint", value: it.setPoint])
             sendEvent([name: "heaterMode", value: it.heatMode.name])
-            sendEvent([name: "temperature", value: it.temp])
+            sendEvent([name: "temperature", value: it.temp, unit: state.scale])
         }
     }
 }
 
 
 def setTemperature(t) {
-	log.debug(device.label + " current temp set to ${t}")
-    sendEvent(name: 'temperature', value: t, unit:"F")
-    log.debug(device.label + " DONE current temp set to ${t}")
+    logger("Current temp setting to ${t} ${state.scale}"."debug")
+    sendEvent(name: 'temperature', value: t, unit:state.scale)
+    log.debug("DONE current temp set to ${t}","trace")
 }
 
-// Get stored temperature from currentState in current local scale
-def getTempInLocalScale(state) {
-	def temp = device.currentState(state)
-	if (temp && temp.value && temp.unit) {
-		return getTempInLocalScale(temp.value.toBigDecimal(), temp.unit)
-	}
-	return 0
+
+// **********************************
+// INTERNAL Methods
+// **********************************
+def addHESTChildDevice(namespace, deviceType, dni, options  ) {
+	if (state.isHE) {
+    	return addChildDevice(namespace, deviceType, dni, options)
+	} else {
+    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
+    }
 }
 
-// get/convert temperature to current local scale
-def getTempInLocalScale(temp, scale) {
-	if (temp && scale) {
-		def scaledTemp = convertTemperatureIfNeeded(temp.toBigDecimal(), scale).toDouble()
-		return (getTemperatureScale() == "F" ? scaledTemp.round(0).toInteger() : roundC(scaledTemp))
-	}
-	return 0
-}
-
-def getTempInDeviceScale(state) {
-	def temp = device.currentState(state)
-	if (temp && temp.value && temp.unit) {
-		return getTempInDeviceScale(temp.value.toBigDecimal(), temp.unit)
-	}
-	return 0
-}
-
-def getTempInDeviceScale(temp, scale) {
-	if (temp && scale) {
-		def deviceScale = (state.scale == 1) ? "F" : "C"
-		return (deviceScale == scale) ? temp :
-				(deviceScale == "F" ? celsiusToFahrenheit(temp).toDouble().round(0).toInteger() : roundC(fahrenheitToCelsius(temp)))
-	}
-	return 0
-}
-
-def roundC (tempC) {
-	return (Math.round(tempC.toDouble() * 2))/2
-}
-
-/**
- *
- *
- *  Standard code for API calls
- **/
+// INTERNAL Methods
 private getHost() {
     return getParent().getHost()
 }
 
+def getControllerURI(){
+    def host = getHost()
+    return "http://${host}"
+}
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    if (state.isST) {
+    	 def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+        asynchttpGet(aCallback, params, data)
+    }
+}
+
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    if (state.isST) {
+        def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "PUT",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+     	def params = [
+        	uri: getControllerURI(),
+        	path: message,
+        	requestContentType: "application/json",
+        	contentType: "application/json",
+        	body:body
+    	]
+        asynchttpPut(aCallback, params, data)
+    }
+
+}
+
+def generalCallback(response, data) {
+   logger("Callback(status):${response.getStatus()}","debug")
+}
+
+
+
+def toIntOrNull(it) {
+   return it?.isInteger() ? it.toInteger() : null
+ }
+
+
+
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
 
 private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
         case "error":
-            if (state.loggingLevelIDE >= 1) log.error msg
+            if (logLevel >= 1) log.error msg
             break
 
         case "warn":
-            if (state.loggingLevelIDE >= 2) log.warn msg
+            if (logLevel >= 2) log.warn msg
             break
 
         case "info":
-            if (state.loggingLevelIDE >= 3) log.info msg
+            if (logLevel >= 3) log.info msg
             break
 
         case "debug":
-            if (state.loggingLevelIDE >= 4) log.debug msg
+            if (logLevel >= 4) log.debug msg
             break
 
         case "trace":
-            if (state.loggingLevelIDE >= 5) log.trace msg
+            if (logLevel >= 5) log.trace msg
             break
 
         default:
@@ -179,6 +232,7 @@ private logger(msg, level = "debug") {
             break
     }
 }
+
 
 // **************************************************************************************************************************
 // SmartThings/Hubitat Portability Library (SHPL)

@@ -13,6 +13,7 @@ metadata {
             importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_chlorinator.groovy') {
 		capability "Refresh"
         capability "Switch"
+
 		attribute "saltLevel", "string"
         attribute "targetOutput", "string"
 		attribute "currentOutput", "string"
@@ -57,9 +58,11 @@ metadata {
                                       "constraints":[0,1,2,3,4,5,6,7,8]
                                      ]]
          } else {
-             // Commands for SmartThings go here
+             command "setPoolSetpoint", ["number"]
+             command "setSpaSetpoint", ["number"]
+             command "setSuperChlorHours", ["boolean", "number"]
          }
-    
+
     }
     preferences {
          section("General:") {
@@ -68,33 +71,66 @@ metadata {
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
         	options: [
-        	    "0" : "None",
-        	    "1" : "Error",
-        	    "2" : "Warning",
-        	    "3" : "Info",
-        	    "4" : "Debug",
-        	    "5" : "Trace"
+        	    "None",
+        	    "Error",
+        	    "Warning",
+        	    "Info",
+        	    "Debug",
+        	    "Trace"
         	],
-        	defaultValue: "3",
+        	defaultValue: "Info",
             displayDuringSetup: true,
         	required: false
             )
         }
     }
+
+    tiles (scale:1) {
+            valueTile("saltLevel","saltLevel", height:2,width:2) {
+            state("saltLevel", label:'${currentValue} ppm',
+				backgroundColors:[
+							[value: 0, color: "#ed310c"],
+                            [value: 1000, color: "#ed745c"],
+							[value: 2400, color: "#edad0c"],
+							[value: 2800, color: "#c9cf61"],
+							[value: 3000, color: "#75c987"],
+							[value: 3200, color: "#61eb34"]
+                     ]
+				)
+            }
+            valueTile("superChlor","superChlor", height:1,width:1) {
+            	state("false", label:'SuperChlor Off')
+              	state("true", label:'SuperChlor On')
+            }
+            valueTile("superChlorHours","superChlorHour", height:1,width:1) { state("default", label:'${currentValue} hours') }
+            valueTile("currentOutput","currentOutput", height:1,width:1) { state("default", label:'${currentValue}%') }
+            valueTile("poolSetpoint","poolSetpoint", height:1,width:1) { state("default", label:'${currentValue}%') }
+            valueTile("spaSetpoint","spaSetpoint", height:1,width:1) { state("default", label:'${currentValue}%') }
+            valueTile("targetOutput","targetOutput", height:1,width:1) { state("default", label:'${currentValue}%') }
+            valueTile("saltRequired","saltRequired", height:1,width:1) {
+            	state("Yes", label:'Salt Required')
+                state("No", label:'Salt Level OK')
+                }
+            valueTile("status","status", height:1,width:1) { state("default", label:'Status: ${currentValue}') }
+            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
+				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
+			}
+
+    }
 }
 
 
 def configure() {
-   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5        
+   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
 }
 
 def installed() {
-   state.loggingLevelIDE = 3
+   state.loggingLevelIDE = 'Info'
    getHubPlatform()
 }
 
 def updated() {
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
 }
 
 
@@ -115,16 +151,14 @@ def parse(msg) {
 // Command Implementations
 def refresh() {
     logger("Requested a refresh","info")
-    def id = getDataValue("id")
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/${id}"
-    ]
-    logger("Refresh with ${params} - ${data}","debug")
-    asynchttpGet('parseRefresh', params, data)
+    def id = getDataValue("chlorId")
+    def body = ''
+    def data = null
+    logger("Refresh for ${id}","debug")
+    sendGet("/state/chlorinator/${id}",'parseRefresh', body, data)
 }
 
-def parseRefresh (response, data) {
+def parseRefresh (response, data=null) {
     logger("parseRefresh - ${response.json}","debug")
     try {
         def value = response.getJson()
@@ -153,89 +187,52 @@ def chlorinatorOff() {
 }
 
 def setPoolSetpoint(poolLevel) {
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/poolSetPoint",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: [id: getDataValue("id"), setPoint: poolLevel ]
-    ]
-    data = [device: device, item: 'poolSetpoint', value: poolLevel]
+    def body = [id: getDataValue("chlorId"), setPoint: poolLevel ]
+    def data = [device: device, item: 'poolSetpoint', value: poolLevel]
 
     logger("Update Chlorinator with poolSetpoint to ${poolLevel}","info")
     logger("Update Chlorinator with PUT ${params} - ${data}","debug")
-    asynchttpPut('updateCallback', params, data)
+    sendPut("/state/chlorinator/poolSetPoint",'updateCallback', body, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
 def setSpaSetpoint(spaLevel) {
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/spaSetPoint",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: [id: getDataValue("id"), setPoint: spaLevel ]
-    ]
-    data = [device: device, item: 'spaSetpoint', value: spaLevel]
-
+    def body =  [id: getDataValue("chlorId"), setPoint: spaLevel ]
+    def data = [device: device, item: 'spaSetpoint', value: spaLevel]
     logger("Update Chlorinator with spaSetpoint to ${spaLevel}","info")
     logger("Update Chlorinator with PUT ${params} - ${data}","debug")
-    asynchttpPut('updateCallback', params, data)
+    sendPut("/state/chlorinator/spaSetPoint",'updateCallback', body, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
 def setSuperChlorHours(status, hours) {
     logger("Super chlor  ${hours} ${status}","trace")
-     def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/superChlorHours",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]
-    ]
-    data = [device: device, item: 'superChlor', value: hours]
-
+    def body =  [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]
+    def data = [device: device, item: 'superChlor', value: hours]
     logger("Update Chlorinator with SuperChlor to ${hours}","info")
-    logger("Update Chlorinator with PUT ${params} - ${data}","debug")
-    asynchttpPut('updateCallback', params, data)
-
-    def params2 = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/superChlorinate",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: [id: getDataValue("id"), hours: hours, superChlorinate : status == 'On' ? 1 : 0 ]
-    ]
+	sendPut("/state/chlorinator/superChlorHours",'updateCallback', body, data)
 
     logger("Update Chlorinator with SuperChlorinate to ${status}","info")
-    asynchttpPut('updateCallback', params2, data)
-
+ 	sendPut("/state/chlorinator/superChlorinate",'updateCallback', body, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
 
 def chlorinatorUpdate(poolLevel = null, spaLevel = null, superChlorHours = null) {
-    def id = getDataValue("id")
+    def id = getDataValue("chlorId")
     def body = [
         id: id,
         poolSetPoint: poolLevel ? poolLevel : device.currentValue("poolSetpoint"),
         spaSetPoint: spaLevel ? spaLevel : device.currentValue("spaSetpoint") ,
         superChlorHours: superChlorHours ? superChlorHours : device.currentValue("superChlorHours")
     ]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/chlorinator/setChlor)",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: body
-    ]
+    def data = [device: device, item: 'chlorinatorUpdate', value: body]
     logger("Update Chlorinator with ${body}","info")
-    logger("Update Chlorinator with PUT ${params} - ${body}","debug")
-    asynchttpPut('updateCallback', params, data)
+    sendPut('/state/chlorinator/setChlor','updateCallback', body, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
-def updateCallback(response, data) {
+def updateCallback(response, data=null) {
     if (response.getStatus() == 200) {
         logger("State Change Result ${response.getStatus()}","debug")
         logger("State change complete","info")
@@ -244,35 +241,138 @@ def updateCallback(response, data) {
     }
 }
 
+// **********************************
+// INTERNAL Methods
+// **********************************
+def addHESTChildDevice(namespace, deviceType, dni, options  ) {
+	if (state.isHE) {
+    	return addChildDevice(namespace, deviceType, dni, options)
+	} else {
+    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
+    }
+}
+
+// INTERNAL Methods
+private getHost() {
+    return getParent().getHost()
+}
+
+def getControllerURI(){
+    def host = getHost()
+    return "http://${host}"
+}
+
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    if (state.isST) {
+    	 def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+        asynchttpGet(aCallback, params, data)
+    }
+}
+
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    if (state.isST) {
+        def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "PUT",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+     	def params = [
+        	uri: getControllerURI(),
+        	path: message,
+        	requestContentType: "application/json",
+        	contentType: "application/json",
+        	body:body
+    	]
+        asynchttpPut(aCallback, params, data)
+    }
+
+}
+
+def generalCallback(response, data) {
+   logger("Callback(status):${response.getStatus()}","debug")
+}
 
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
+
+def toIntOrNull(it) {
+   return it?.isInteger() ? it.toInteger() : null
+ }
+
+
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
 
 private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
         case "error":
-            if (state.loggingLevelIDE >= 1) log.error msg
+            if (logLevel >= 1) log.error msg
             break
 
         case "warn":
-            if (state.loggingLevelIDE >= 2) log.warn msg
+            if (logLevel >= 2) log.warn msg
             break
 
         case "info":
-            if (state.loggingLevelIDE >= 3) log.info msg
+            if (logLevel >= 3) log.info msg
             break
 
         case "debug":
-            if (state.loggingLevelIDE >= 4) log.debug msg
+            if (logLevel >= 4) log.debug msg
             break
 
         case "trace":
-            if (state.loggingLevelIDE >= 5) log.trace msg
+            if (logLevel >= 5) log.trace msg
             break
 
         default:

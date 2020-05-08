@@ -30,28 +30,60 @@ metadata {
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
         	options: [
-        	    "0" : "None",
-        	    "1" : "Error",
-        	    "2" : "Warning",
-        	    "3" : "Info",
-        	    "4" : "Debug",
-        	    "5" : "Trace"
+        	    "None",
+        	    "Error",
+        	    "Warning",
+        	    "Info",
+        	    "Debug",
+        	    "Trace"
         	],
-        	defaultValue: "3",
+        	defaultValue: "Info",
             displayDuringSetup: true,
         	required: false
             )
         }
     }
+    
+    if (isST) {
+        tiles (scale:2) { 
+         	valueTile("switch", "switch", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'${currentValue}'
+            }
+            valueTile("power", "device.power", decoration: "flat", width: 2, height: 2) {
+                state "power", label:'${currentValue} Watts'
+            }
+            valueTile("RPM", "RPM", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'${currentValue} RPM'
+            }
+            valueTile("status", "Status", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'Status: ${currentValue}'
+            }
+            valueTile("flow", "flow", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'Flow: ${currentValue}'
+            }
+            valueTile("driveState", "driveState", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'Drive State: ${currentValue}'
+            }
+            valueTile("mode", "mode", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'Mode: ${currentValue}'
+            }
+            valueTile("command", "command", decoration: "flat", width: 2, height: 2) {
+                state "default", label:'Command: ${currentValue}'
+            }
+        }
+        main "switch"
+    }
+    
+    
 }
 
 def installed() {
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
     getHubPlatform()
 }
 
 def updated () {
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
 }
 
 
@@ -116,33 +148,43 @@ def stateChangeCallback(response, data) {
     logger("State Change Result Data ${response.getData()}","debug")
 }
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
 
 private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
         case "error":
-            if (state.loggingLevelIDE >= 1) log.error msg
+            if (logLevel >= 1) log.error msg
             break
 
         case "warn":
-            if (state.loggingLevelIDE >= 2) log.warn msg
+            if (logLevel >= 2) log.warn msg
             break
 
         case "info":
-            if (state.loggingLevelIDE >= 3) log.info msg
+            if (logLevel >= 3) log.info msg
             break
 
         case "debug":
-            if (state.loggingLevelIDE >= 4) log.debug msg
+            if (logLevel >= 4) log.debug msg
             break
 
         case "trace":
-            if (state.loggingLevelIDE >= 5) log.trace msg
+            if (logLevel >= 5) log.trace msg
             break
 
         default:

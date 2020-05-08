@@ -8,7 +8,7 @@ definition(
 		name: "Pool Controller 6",
 		namespace: "bsileo",
 		author: "Brad Sileo",
-		description: "This is App to connect to the nodejs_poolController (version > 6) and create devices to manage it within Hubitat",
+		description: "This is App to connect to the nodejs_poolController (version > 6) and create devices to manage it within Hubitat/SmartThings",
 		category: "",
 		iconUrl: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn.png",
 		iconX2Url: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn@2x.png",
@@ -18,7 +18,7 @@ definition(
 preferences {
     page(name: "home", title: "Pool Controller", content: "appHome")
     page(name: "deviceDiscovery", title: "Pool Controller Device Discovery", content: "deviceDiscovery")
-    page(name: "manualPage", title: "Manually enter PoolController")
+    page(name: "manualPage", title: "Manually enter PoolController", content: "manualPage")
     page(name: "selectDevice", title: "Select the Controller", content: "selectDevice")
     page(name: "poolConfig", title: "Pool Configuration", content: "poolConfig")
 }
@@ -26,6 +26,7 @@ preferences {
 def installed() {
 	log.debug "Installed with settings: ${settings}"
     getHubPlatform()
+    log.debug "Installed with state: ${state}"
     initialize()
     addDevice()
 }
@@ -45,10 +46,10 @@ def initialize() {
 
 def appHome() {
     def install = true
+    getHubPlatform()
     return dynamicPage(name: "home", title: "NodeJS Pool Controller", refreshInterval: 0, install: false, uninstall: true) {
       section("Device Discovery and Setup", hideable:true, hidden:false) {
-         href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")
-         href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
+         href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")         
       }
     }
 }
@@ -83,10 +84,10 @@ def deviceDiscovery() {
     verifyDevices()
     return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "selectDevice", refreshInterval: 2, install: false, uninstall: true) {
         section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see the device you want to connect to in the verified section below:", hideable:false, hidden:false) {
-            paragraph "<h2>Verfied:</h2>"
+            paragraph "${ state.isHE ? '<h2>' : ''}Verfied:${state.isHE ? '</h2>' : ''}"
             paragraph describeDevices()
-            input "refreshDiscovery", "button", title: "Refresh"
-            paragraph "<h2>All devices:</h2>"
+            if (state.isHE) { input "refreshDiscovery", "button", title: "Refresh" }
+            paragraph "${ state.isHE ? '<h2>' : ''}All devices:${ state.isHE ? '</h2>' : ''}"
             paragraph describeUnverifiedDevices()
 	    }
         section("Manual poolController Configuration", hideable:true, hidden:false) {
@@ -110,16 +111,23 @@ private String describeDevices() {
     def sorted = getVerifiedDevices()
     // log.debug("SORTED ${sorted}")
     def builder = new StringBuilder()
-    builder << '<ul class="device">'
+    if (state.isHE) {
+    	builder << '<ul class="device">'
+    }
     sorted.each {
         key, device ->
             def ip = getIP(device)
             def port = getPort(device)
-            builder << (
-                "<li class='device'>${device.name} ${ip}:${port} (${device.mac})</li>"
-                )
+            if (state.isHE) {
+            	builder << (
+                	"<li class='device'>${device.name} ${ip}:${port} (${device.mac})</li>"
+                	)
+            } else {
+            	builder << ( "${device.name} ${ip}:${port} (${device.mac})"
+                	)
+            }
     }
-    builder << '</ul>'
+    if (state.isHE) { builder << '</ul>' }
     builder.toString()
 }
 
@@ -127,26 +135,30 @@ private String describeUnverifiedDevices() {
     def sorted = getDevices()
     // log.debug("SORTED ${sorted}")
     def builder = new StringBuilder()
-    builder << '<ul class="device">'
+    if (state.isHE) { builder << '<ul class="device">' }
     sorted.each {
         key, device ->
             def ip = getIP(device)
             def port = getPort(device)
-            builder << (
-                "<li class='device'>${ip}:${port} (${device.mac})</li>"
-                )
+            if (state.isHE) {
+            	builder << (
+                	"<li class='device'>${ip}:${port} (${device.mac})</li>"
+                	)
+            } else {
+            	builder << ( "${ip}:${port} (${device.mac})" )
+            }
     }
-    builder << '</ul>'
+    if (state.isHE) { builder << '</ul>' }
     builder.toString()
 }
 
 
 def manualPage() {
-    return dynamicPage(name: "manualController", title: "Enter Controller", nextPage: "deviceDiscovery", refreshInterval: 0, install: false, uninstall: false) {
+    return dynamicPage(name: "manualPage", title: "Enter Controller", nextPage: "deviceDiscovery", refreshInterval: 0, install: false, uninstall: false) {
 		section("Controller") {
-            input(name:"controllerIP", type: "text", title: "Controller IP Address", required: true, displayDuringSetup: true, defaultValue:"")
-          	input(name:"controllerPort", type: "number", title: "Controller Port", required: true, displayDuringSetup: true, defaultValue:"3000")
-          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (AA:BB:CC:11:22:33)", required: true, displayDuringSetup: true)
+            input(name:"controllerIP", type: "text", title: "Controller IP Address", required: true, displayDuringSetup: true, defaultValue:"192.168.2.169")
+          	input(name:"controllerPort", type: "number", title: "Controller Port", required: true, displayDuringSetup: true, defaultValue:"4200")
+          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (AA:BB:CC:11:22:33)", required: true, displayDuringSetup: true, defaultValue: "b8-27-eb-bf-81-b0")
         }
     }
 }
@@ -200,22 +212,22 @@ private String describeConfig() {
     // log.debug("SORTED ${sorted}")
     def builder = new StringBuilder()
     def bodies = state.bodies.findAll{element -> element.isActive}
-    builder << '<ul class="device">'    
-    builder << "<li class='device'>Config Version ${state.configVersion.lastUpdated}</li>"
-    builder << "<li class='device'>Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water</li>"    
-    builder << "<li class='device'>Create ${state.circuits.findAll{element -> element.isActive}.size()} circuits</li>"
-    builder << "<li class='device'>Create ${state.features.findAll{element -> element.isActive}.size()} features</li>"    
-    builder << "<li class='device'>Create ${state.pumps.findAll{element -> element.isActive}.size()} pumps</li>"
-    builder << "<li class='device'>Create ${state.valves.findAll{element -> element.isActive}.size()} valves</li>"
-    builder << "<li class='device'>Create ${state.heaters.findAll{element -> element.isActive}.size()} heaters</li>"
-    builder << "<li class='device'>Create ${state.intellichem.findAll{element -> element.isActive}.size()} intellichems</li>"
-    builder << "<li class='device'>Create ${state.chlorinators.findAll{element -> element.isActive}.size()} chlorinators</li>"    
-    builder << '</ul>'
+    builder << "${state.isHE ? '<ul class="""device""">' : ''}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Config Version ${state.configVersion.lastUpdated}${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.circuits.findAll{element -> element.isActive}.size()} circuits${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.features.findAll{element -> element.isActive}.size()} features${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.pumps.findAll{element -> element.isActive}.size()} pumps${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.valves.findAll{element -> element.isActive}.size()} valves${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.heaters.findAll{element -> element.isActive}.size()} heaters${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.intellichem.findAll{element -> element.isActive}.size()} intellichems${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.chlorinators.findAll{element -> element.isActive}.size()} chlorinators${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '</ul>' : ''}"
     builder.toString()
 }
 
 def getPoolConfig() {
-     def hubAction
+    def hubAction
  	atomicState.config=false
     def devMAC = selectedDevice
     def devices = getVerifiedDevices()
@@ -313,18 +325,20 @@ def USN() {
 }
 
 void ssdpDiscover() {
+	def hubAction
     def searchTarget = "lan discovery " + USN()
     if (state.isST) {
-           hubAction = physicalgraph.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)                
-        } else {         
-            hubAction = hubitat.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)
-        }
-        try {
-            sendHubCommand(hubAction)
-            log.debug "SENT: ${hubAction}"
-        } catch (e) {
-            log.error "Something went wrong: $e"
-        }    
+    	log.debug("HA==${physicalgraph.device.HubAction}")
+        hubAction = physicalgraph.device.HubAction.newInstance("${searchTarget}", physicalgraph.device.Protocol.LAN)             
+    } else {         
+        hubAction = hubitat.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)
+    }
+    try {
+        sendHubCommand(hubAction)
+        log.debug "SENT: ${hubAction}"
+    } catch (e) {
+        log.error "Something went wrong: $e"
+    }    
 }
 
 void ssdpSubscribe() {
@@ -383,6 +397,7 @@ def getDevices() {
 }
 
 def verifyDevices() {
+	def hubAction
 	def devices = getDevices()
     //log.debug("VerifyDevices(pre) - ${devices}")
     devices = devices.findAll { key, value ->
@@ -477,6 +492,10 @@ def addManualDevice() {
 	if (controllerMac && controllerIP && controllerPort) {  createOrUpdateDevice(controllerMac,controllerIP,controllerPort)	}
 }
 
+def selectedDeviceDNI() {
+	return controllerMac.replaceAll("-",'').replaceAll(':','').toUpperCase()
+}
+
 def createOrUpdateDevice(mac,ip,port) {
 	def hub = location.hubs[0]
 	//log.error("WARNING Using TEST MAC")
@@ -503,6 +522,37 @@ def createOrUpdateDevice(mac,ip,port) {
    }
 }
 
+// *********************************************************
+// Device helper methods
+// *********************************************************
+def getPoolController() {	
+	return getChildDevice(selectedDeviceDNI())
+}
+
+def componentOn(evt) {
+	log.debug("Got ${evt} from ${evt.getDevice()}")
+	log.debug("${evt.device} ${evt.deviceId}")    
+    def poolController = getPoolController()
+    def dev = poolController.getChild(evt.deviceId)
+    log.debug("Got back ${dev}")
+    
+    poolController.componentOn(dev)
+}
+
+def componentOff(evt) {
+	log.debug("App componentOff Helper")	
+	log.debug("${evt.device} ${evt.deviceId}")    
+    def poolController = getPoolController()
+    def dev = poolController.getChild(evt.deviceId)
+    log.debug("Got back ${dev}")
+    
+    poolController.componentOff(dev)
+}
+
+
+// *********************************************************
+// 
+// *********************************************************
 def getPort(value) {
     String port
     if ( value.port ) {
