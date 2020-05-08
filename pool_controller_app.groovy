@@ -583,6 +583,52 @@ private String convertHexToIP(hex) {
 	[convertHexToInt(hex[0..1]),convertHexToInt(hex[2..3]),convertHexToInt(hex[4..5]),convertHexToInt(hex[6..7])].join(".")
 }
 
+
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
+
+private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+     def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+
+    switch(level) {
+        case "error":
+            if (logLevel >= 1) log.error msg
+            break
+
+        case "warn":
+            if (logLevel >= 2) log.warn msg
+            break
+
+        case "info":
+            if (logLevel >= 3) log.info msg
+            break
+
+        case "debug":
+            if (logLevel >= 4) log.debug msg
+            break
+
+        case "trace":
+            if (logLevel >= 5) log.trace msg
+            break
+
+        default:
+            log.debug msg
+            break
+    }
+}
+
 // **************************************************************************************************************************
 // SmartThings/Hubitat Portability Library (SHPL)
 // Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)

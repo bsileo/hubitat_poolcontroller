@@ -823,8 +823,8 @@ private logger(msg, level = "debug") {
         	    "Warning" : 2,
         	    "Info" : 3,
         	    "Debug" : 4,
-        	    "Trace" : 5]
-     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+        	    "Trace" : 5]                
+     def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
      // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {

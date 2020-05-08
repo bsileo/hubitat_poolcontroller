@@ -19,6 +19,8 @@ metadata {
         attribute "lightingTheme", "String"
         attribute "action", "String"
 
+		attribute "circuitID", "Number"
+
          if (isHE) {
             command "setLightMode", [[name:"Light mode*",
 			    "type":"ENUM","description":"Select an Intellibright mode to set",
@@ -37,60 +39,87 @@ metadata {
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
         	options: [
-        	    "0" : "None",
-        	    "1" : "Error",
-        	    "2" : "Warning",
-        	    "3" : "Info",
-        	    "4" : "Debug",
-        	    "5" : "Trace"
+        	    "None",
+        	    "Error",
+        	    "Warning",
+        	    "Info",
+        	    "Debug",
+        	    "Trace"
         	],
-        	defaultValue: "3",
+        	defaultValue: "Info",
             displayDuringSetup: true,
         	required: false
             )
         }
     }
+    
+    if (isST) {
+    	tiles {
+            standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
+                state "off", label: "Off", action: "on", icon:"st.Lighting.light21", nextState: "on", backgroundColor: "#ffffff"
+                state "on", label: "On", action: "off", icon:"st.Lighting.light21",  nextState: "off", backgroundColor: "#79b821"
+			}
+            
+            standardTile("theme", "lightingTheme", width: 2, height: 2, canChangeIcon: true) {
+                state "party", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
+                state "romance", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
+                state "caribbean", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"        
+                state "american", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"        
+                state "sunset", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#ffff00", nextState:"off"        
+                state "royal", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"        
+
+                state "blue", label:"Blue", action: "off", icon:"st.Lighting.light21", backgroundColor:"#0000FF", nextState:"off"
+                state "green", label:"Green", action: "off", icon:"st.Lighting.light21", backgroundColor:"#33cc33", nextState:"off"
+                state "red", label: "Red", action: "off", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f", nextState: "off"
+                state "white", label:"White", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
+                state "magenta", label:"Magenta", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"            
+            }           
+            
+            
+            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
+				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
+			}
+
+            main "switch"
+            details "switch", "theme", "refresh"
+		}
+    }
 }
 
 def installed() {
 	log.debug("Installed Intellibrite Color Light " + device.deviceNetworkId)
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
+    getHubPlatform()
     manageData()
     manageChildren()
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
-    getHubPlatform()
 }
 
-def updated() {
+def updated() { 
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
   manageData()
-  manageChildren()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 5
+  refreshConfiguration(true)
 }
 
 
 def configure() {
-    refreshConfiguration(true)
-    getHubPlatform()
+	getHubPlatform()
+    refreshConfiguration(true) 
 }
 
-def refreshConfiguration(process = false) {
-    def cid = getDataValue('circuitID')
-    def aCallback = 'parseConfiguration'
+def refreshConfiguration(process = false) {    
+    def cid = getDataValue("circuitID")
     def body = ''
+    def data = null
+    def aCallback = 'parseConfiguration'
     if (process) {
         aCallback = 'configurationCallback'
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/config/circuit/${cid}/lightThemes",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
-    asynchttpGet(aCallback, params, data)
-}
+    }
+    logger("Resfresh Config for Circuit ${cid}","debug")
+    sendGet("/config/lightGroups/themes", aCallback, body, data)
 }
 
 
-def configurationCallback(response, data) {
+def configurationCallback(response, data=null) {
     if (parseConfiguration(response, data)) {
         manageChildren()
     } else {
@@ -98,7 +127,7 @@ def configurationCallback(response, data) {
     }
 }
 
-def parseConfiguration(response, data) {
+def parseConfiguration(response, data=null) {
     if (response.getStatus() == 200) {
         def msg = response.json
         logger(msg,"trace")
@@ -117,16 +146,18 @@ def manageData() {
 
 def manageChildren() {
 	def hub = location.hubs[0]
-
     def colors = state.colors
-
+    logger("Process manageChildren for ${colors}","trace")
     def skipModes = ['unknown','save','reset','none','colorset','colorswim','recall','reset','hold']
 
  	def displayName
     def deviceID
-    def existingButton
-    def cDNI
+    def existing
+    def dni
 
+	def namespace = state.isHE ? 'hubitat' : 'smartthings'
+    def deviceType = state.isHE ? "Generic Component Switch" : "Virtual Switch"
+    
 	// Create selected devices
 	colors.each {
         if (! skipModes.contains(it.name)) {
@@ -138,7 +169,8 @@ def manageChildren() {
             if (!existing){
                 try{
                     logger("Creating ${it.desc} light mode button","debug")
-                   	def cButton = addChildDevice("hubitat", "Generic Component Switch", dni,
+                    logger("Namespace ${namespace} type ${deviceType}  ${dni}  with Name= ${it.name} and val=${it.val}","debug")
+                   	def cButton = addHESTChildDevice(namespace, deviceType, dni,
                         [ label: displayName,
                          componentName: deviceID,
                          componentLabel: displayName,
@@ -151,7 +183,7 @@ def manageChildren() {
                 }
                 catch(e)
                 {
-                  logger( "Error! problem creating light mode device. Check your hub to make sure the 'Generic Component Switch is available - " + e ,"error")
+                  logger( "Error! problem creating light mode device. Check your logs for more details - " + e ,"error")
                 }
            } else {
                logger( "Existing Button for ${it} Updated","info")
@@ -167,23 +199,17 @@ def manageChildren() {
 
 def parse(msg) {
     logger("Parse Intellibrite - ${msg}","trace")
-    logger("Implement pare Intellibrite - ${msg}","error")
+    logger("Implement parsee Intellibrite - ${msg}","error")
 }
 
 def refresh() {
     logger("refresh Intellibrite - ${msg}","trace")
     def body = null
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/config/lightGroup/colors",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
-    asynchttpGet('parseRefresh', params, data)
+    def data = null
+    sendGet("/config/lightGroup/colors", 'parseRefresh', body, data)    
 }
 
-def parseRefresh (response, data) {
+def parseRefresh (response, data=null) {
     logger("Parse Refresh ${response.getStatus()} -- ${response.getStatus()==200}","debug")
     if (response.getStatus() == 200) {
         def json = response.getJson()
@@ -205,16 +231,9 @@ def parseRefresh (response, data) {
 
 def setLightState(state) {
     def id = getDataValue("circuitID")
-    def body = [id: id, state: state]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/circuit/setState",
-        body: body,
-        requestContentType: "application/json",
-        contentType: "application/json"
-    ]
+    def body = [id: id, state: state]    
     logger("Set Intellibrite mode with ${params} - ${data}","debug")
-    asynchttpPut('lightModeCallback', params, data)
+    sendPut("/state/circuit/setState", 'lightModeCallback', body, data)
 	sendEvent(name: "switch", value: "on", isStateChange: true, displayed: true)
 }
 
@@ -262,51 +281,151 @@ def setLightMode(mode) {
 def setLightModeByVal(modeVal) {
     logger("Going to light mode ${modeVal}","debug")
     def id = getDataValue("circuitID")
-    def body = [theme: modeVal]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/intellibrite/setTheme",
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body: body
-    ]
+    def body = [theme: modeVal]   
     logger("Set Intellibrite mode with ${params} - ${data}","debug")
-    asynchttpPut('lightModeCallback', params, data)
+    sendPut("/state/intellibrite/setTheme",'lightModeCallback', body, data)
     sendEvent(name: "switch", value: "on")
 }
 
-def lightModeCallback(response, data) {
+def lightModeCallback(response, data=null) {
     logger("LightMode Result ${response.getStatus()}","debug")
     logger("LightMode Response Data ${response.getData()}","debug")
 }
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
+
+// **********************************
+// INTERNAL Methods
+// **********************************
+def addHESTChildDevice(namespace, deviceType, dni, options  ) {
+	if (state.isHE) {
+    	return addChildDevice(namespace, deviceType, dni, options)
+	} else {    	
+    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
+    }
+}
+
+// INTERNAL Methods
+private getHost() {
+    return getParent().getHost()
+}
+
+def getControllerURI(){
+    def host = getHost()
+    return "http://${host}"
+}
+
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    if (state.isST) {
+    	 def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [    
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])            
+        sendHubCommand(hubAction)
+    } else {    	
+        asynchttpGet(aCallback, params, data)
+    }    
+}
+
+private sendPut(message, aCallback=generalCallback, body="", data=null) {    
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    if (state.isST) {         
+        def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "PUT",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [    
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])            
+        sendHubCommand(hubAction)        
+    } else {
+     	def params = [
+        	uri: getControllerURI(),
+        	path: message,
+        	requestContentType: "application/json",
+        	contentType: "application/json",
+        	body:body
+    	]
+        asynchttpPut(aCallback, params, data)
+    }
+    
+}
+
+def generalCallback(response, data) {
+   logger("Callback(status):${response.getStatus()}","debug")
+}
+
+
+
+def toIntOrNull(it) {
+   return it?.isInteger() ? it.toInteger() : null
+ }
+
+
+
+//*******************************************************
+//*  logger()
+//*
+//*  Wrapper function for all logging.
+//*******************************************************
 
 private logger(msg, level = "debug") {
+	    
+    def lookup = [
+        	    "None" : 0,
+        	    "Error" : 1,
+        	    "Warning" : 2,
+        	    "Info" : 3,
+        	    "Debug" : 4,
+        	    "Trace" : 5]
+      def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
         case "error":
-            if (state.loggingLevelIDE >= 1) log.error msg
+            if (logLevel >= 1) log.error msg
             break
 
         case "warn":
-            if (state.loggingLevelIDE >= 2) log.warn msg
+            if (logLevel >= 2) log.warn msg
             break
 
         case "info":
-            if (state.loggingLevelIDE >= 3) log.info msg
+            if (logLevel >= 3) log.info msg
             break
 
         case "debug":
-            if (state.loggingLevelIDE >= 4) log.debug msg
+            if (logLevel >= 4) log.debug msg
             break
 
         case "trace":
-            if (state.loggingLevelIDE >= 5) log.trace msg
+            if (logLevel >= 5) log.trace msg
             break
 
         default:

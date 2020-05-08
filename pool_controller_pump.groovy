@@ -70,6 +70,9 @@ metadata {
             valueTile("command", "command", decoration: "flat", width: 2, height: 2) {
                 state "default", label:'Command: ${currentValue}'
             }
+            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
+				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
+			}
         }
         main "switch"
     }
@@ -163,7 +166,7 @@ private logger(msg, level = "debug") {
         	    "Info" : 3,
         	    "Debug" : 4,
         	    "Trace" : 5]
-     def logLevel = lookup[logLevel ? logLevel : 'Debug']
+      def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
      // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
 
     switch(level) {
