@@ -5,7 +5,7 @@ A collection of devices designed to interface with a nodejs-poolController insta
 Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
 
 ## Note
-This version is NOT compatible with the 5.3.3 version of nodejs-poolController. If you are using that version, considering upgrading! The last deprecated version of this code for use with 5.3.3 is available [here](https://github.com/bsileo/hubitat_poolcontroller/tree/NJPC-5.3.3). There is no forward migration path from that version to this version as all Apps and Driv er have been renamed and refactored. 
+This version is NOT compatible with the 5.3.3 version of nodejs-poolController. If you are using that version, consider upgrading! The last deprecated version of this code for use with 5.3.3 is available [here](https://github.com/bsileo/hubitat_poolcontroller/tree/NJPC-5.3.3). There is no forward migration path from that version to this version as all Apps and Drivers have been renamed and refactored. 
 
 ## Installation Instructions
 
