@@ -16,14 +16,25 @@ metadata {
         capability "Configuration"
         capability "Refresh"
         attribute "swimDelay", "Boolean"
-        attribute "lightingTheme", "String"
-        attribute "action", "String"
 
+        attribute "lightingTheme", "String"
+        attribute "nextLightingTheme", "String"
+
+        if (isHE) {
+        	command "saveTheme" , [[ name: "Save The Selected Theme", description: "Save the nextLightingTheme to the Controller" ]]
+        	command "nextTheme"
+        	command "prevTheme"
+        } else {
+        	command "saveTheme"
+        	command "nextTheme"
+        	command "prevTheme"
+        }
+        attribute "action", "String"
 		attribute "circuitID", "Number"
 
          if (isHE) {
-            command "setLightMode", [[name:"Light mode*",
-			    "type":"ENUM","description":"Select an Intellibright mode to set",
+            command "setLightMode", [[name:"Light Theme*",
+			    "type":"ENUM","description":"Select an Intellibright theme to set",
 			    "constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
 		      ]]
          } else {
@@ -52,36 +63,64 @@ metadata {
             )
         }
     }
-    
+
     if (isST) {
-    	tiles {
-            standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
+    	tiles (scale:2) {
+            standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
                 state "off", label: "Off", action: "on", icon:"st.Lighting.light21", nextState: "on", backgroundColor: "#ffffff"
                 state "on", label: "On", action: "off", icon:"st.Lighting.light21",  nextState: "off", backgroundColor: "#79b821"
 			}
-            
+
             standardTile("theme", "lightingTheme", width: 2, height: 2, canChangeIcon: true) {
                 state "party", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
                 state "romance", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
-                state "caribbean", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"        
-                state "american", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"        
-                state "sunset", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#ffff00", nextState:"off"        
-                state "royal", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"        
+                state "caribbean", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"
+                state "american", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"
+                state "sunset", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#ffff00", nextState:"off"
+                state "royal", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"
 
                 state "blue", label:"Blue", action: "off", icon:"st.Lighting.light21", backgroundColor:"#0000FF", nextState:"off"
                 state "green", label:"Green", action: "off", icon:"st.Lighting.light21", backgroundColor:"#33cc33", nextState:"off"
                 state "red", label: "Red", action: "off", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f", nextState: "off"
                 state "white", label:"White", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
-                state "magenta", label:"Magenta", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"            
-            }           
-            
-            
-            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
+                state "magenta", label:"Magenta", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"
+            }
+
+            multiAttributeTile(name:"nextTheme", type:"generic", width:6, height:4) {
+            	tileAttribute("nextLightingTheme", key: "PRIMARY_CONTROL") {
+                	attributeState "red", label: 'Red', action: "saveTheme", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f"
+                    attributeState "green", label:"Green", action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#33cc33"
+					attributeState "blue", label:"Blue", action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#0000FF"
+                	attributeState "cyan", label:'Cyan', action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#5ef2f2", nextState:"off"
+                	attributeState "white", label:"White", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
+                    attributeState "magenta", label:"Magenta", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"
+                    attributeState "lightmagenta", label:"Light Magenta", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#bd7de8", nextState:"off"
+                    attributeState "lavender", label:"Lavender", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#bd7de8", nextState:"off"
+
+                    attributeState "party", label:'Party Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
+                	attributeState "romance", label:'Romance Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
+                	attributeState "caribbean", label:'Caribbean Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"
+                	attributeState "american", label:'American Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"
+                	attributeState "sunset", label:'Sunset Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#d2d656", nextState:"off"
+                	attributeState "royal", label:'Royal Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"
+                    attributeState "default", label:'${currentValue}', action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#f0eae9", nextState:"off", defaultState: true
+                }
+                tileAttribute("saveTheme", key: "SECONDARY_CONTROL") {
+        			attributeState "default", label: "Click to Save", icon: 'st.Health & Wellness.health2', defaultState: true
+    			}
+                 tileAttribute("themeMove", key: "VALUE_CONTROL") {
+                    attributeState "VALUE_UP", action: "nextTheme"
+                    attributeState "VALUE_DOWN", action: "prevTheme"
+                }
+            }
+
+
+            standardTile("refresh", "refresh", width:2, height:2, inactiveLabel: false, decoration: "flat") {
 				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
 			}
 
-            main "switch"
-            details "switch", "theme", "refresh"
+            main("switch")
+            details(["switch", "theme", "refresh",  "nextTheme"])
 		}
     }
 }
@@ -94,7 +133,7 @@ def installed() {
     manageChildren()
 }
 
-def updated() { 
+def updated() {
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
   manageData()
   refreshConfiguration(true)
@@ -103,10 +142,10 @@ def updated() {
 
 def configure() {
 	getHubPlatform()
-    refreshConfiguration(true) 
+    refreshConfiguration(true)
 }
 
-def refreshConfiguration(process = false) {    
+def refreshConfiguration(process = false) {
     def cid = getDataValue("circuitID")
     def body = ''
     def data = null
@@ -132,6 +171,7 @@ def parseConfiguration(response, data=null) {
         def msg = response.json
         logger(msg,"trace")
         state.colors = msg
+        state.validColors = getValidColors()
         return true
     } else {
         logger("Configuration Failed with code ${response.getStatus()}","error")
@@ -144,12 +184,20 @@ def manageData() {
 	sendEvent(name: "circuitID", value: cid, isStateChange: true, displayed: false)
 }
 
+def getValidColors() {
+ 	def colors = state.colors
+	def skipModes = ['unknown','save','reset','none','colorset','colorswim','colorsync', 'recall','reset','hold', 'mode']
+    def valid = []
+	colors.each {
+    	if (! skipModes.contains(it.name)) { valid.push(it) }
+    }
+    return valid
+}
+
+
 def manageChildren() {
 	def hub = location.hubs[0]
-    def colors = state.colors
-    logger("Process manageChildren for ${colors}","trace")
-    def skipModes = ['unknown','save','reset','none','colorset','colorswim','recall','reset','hold']
-
+    def cid = getDataValue("circuitID")
  	def displayName
     def deviceID
     def existing
@@ -157,41 +205,59 @@ def manageChildren() {
 
 	def namespace = state.isHE ? 'hubitat' : 'smartthings'
     def deviceType = state.isHE ? "Generic Component Switch" : "Virtual Switch"
-    
-	// Create selected devices
-	colors.each {
-        if (! skipModes.contains(it.name)) {
-            logger("Process ${it} ${it.val}--${it.name}->${it.desc}","trace")
-            displayName = "Intellibrite ${it.desc} mode"
-            deviceID = "intellibrite-${it.name}"
-            dni = device.deviceNetworkId + "-${it.name}"
+    logger("Starting manageChildren","debug")
+
+	state.validColors.each {
+        logger("Process ${it} ${it.val}--${it.name}->${it.desc}","trace")
+        displayName = "Intellibrite ${it.desc} mode"
+        deviceID = "intellibrite-${cid}-${it.name}"
+        dni = parent.getChildDNI("intellibrite-${cid}",it.name)
+        logger("Check existing ${dni}","trace")
+        if (state.isST) {
+            logger("Checking in parent - ${parent}","trace")
+            existing = parent.getChild('intellibrite',it.name)
+        }
+        else {
+            logger("Using local children - ${childDevices}","trace")
             existing = childDevices.find({it.deviceNetworkId == dni})
-            if (!existing){
-                try{
-                    logger("Creating ${it.desc} light mode button","debug")
-                    logger("Namespace ${namespace} type ${deviceType}  ${dni}  with Name= ${it.name} and val=${it.val}","debug")
-                   	def cButton = addHESTChildDevice(namespace, deviceType, dni,
-                        [ label: displayName,
-                         componentName: deviceID,
-                         componentLabel: displayName,
-                         isComponent:true,
-                         completedSetup:true,
-                         modeName: it.name,
-                         modeVal: it.val.toString()
-                        ])
-                    logger( "Created Button for ${it.name} ","info")
+        }
+        logger("existing = ${existing}","trace")
+        if (!existing) {
+            try{
+                logger("Creating ${it.desc} light mode button","debug")
+                logger("Namespace ${namespace} type ${deviceType}  ${dni}  with Name= ${it.name} and val=${it.val}","debug")
+                if (state.isST) {
+                    // Add to my parent since ST does not allow nested children.
+                    def cButton = parent.addHESTChildDevice(namespace, deviceType, dni,
+                                                            [ label: displayName,
+                                                             componentName: deviceID,
+                                                             componentLabel: displayName,
+                                                             isComponent:true,
+                                                             completedSetup:true,
+                                                             modeName: it.name,
+                                                             modeVal: it.val.toString()
+                                                            ])
+                } else {
+                    def cButton = addHESTChildDevice(namespace, deviceType, dni,
+                                                     [ label: displayName,
+                                                      componentName: deviceID,
+                                                      componentLabel: displayName,
+                                                      isComponent:true,
+                                                      completedSetup:true,
+                                                      modeName: it.name,
+                                                      modeVal: it.val.toString()
+                                                     ])
                 }
-                catch(e)
-                {
-                  logger( "Error! problem creating light mode device. Check your logs for more details - " + e ,"error")
-                }
-           } else {
-               logger( "Existing Button for ${it} Updated","info")
-               existing.updateDataValue("modeName",it.name)
-               existing.updateDataValue("modeVal",it.val.toString())
-           }
+                logger( "Created Button for ${it.name} ","info")
+            }
+            catch(e)
+            {
+                logger( "Error! problem creating light mode device. Check your logs for more details - " + e ,"error")
+            }
         } else {
-            logger("Skipped ${it} ${it.val}--${it.name}->${it.desc}","trace")
+            logger( "Existing Button for ${it} Updated","info")
+            existing.updateDataValue("modeName",it.name)
+            existing.updateDataValue("modeVal",it.val.toString())
         }
    }
 }
@@ -206,7 +272,7 @@ def refresh() {
     logger("refresh Intellibrite - ${msg}","trace")
     def body = null
     def data = null
-    sendGet("/config/lightGroup/colors", 'parseRefresh', body, data)    
+    sendGet("/config/lightGroup/colors", 'parseRefresh', body, data)
 }
 
 def parseRefresh (response, data=null) {
@@ -216,6 +282,7 @@ def parseRefresh (response, data=null) {
         logger("Parse Refresh JSON ${json}","debug")
         sendEvent([[name: "swimDelay", value: json.swimDelay ? true : false]])
         sendEvent([[name: "lightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
+        sendEvent([[name: "nextLightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
         sendEvent([[name: "action", value: json.action.name, descriptionText:"Lighting Action is ${json.action.desc}"]])
         json.circuits.each {
             logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
@@ -231,24 +298,73 @@ def parseRefresh (response, data=null) {
 
 def setLightState(state) {
     def id = getDataValue("circuitID")
-    def body = [id: id, state: state]    
-    logger("Set Intellibrite mode with ${params} - ${data}","debug")
+    def body = [id: id, state: state]
+    logger("Set Intellibrite mode with ${body}","debug")
     sendPut("/state/circuit/setState", 'lightModeCallback', body, data)
-	sendEvent(name: "switch", value: "on", isStateChange: true, displayed: true)
+	sendEvent(name: "switch", value: "${state == 1 ? 'on' : 'off'}", isStateChange: true, displayed: true)
 }
 
 def on() {
     setLightState(1)
-	sendEvent(name: "switch", value: "on", isStateChange: true, displayed: true)
 }
 
 
 def off() {
     setLightState(0)
-	sendEvent(name: "switch", value: "off", isStateChange: true, displayed: true)
 }
 
+def saveTheme() {
+    def next = device.currentValue('nextLightingTheme')
+    logger("Saving Theme ${next}","info")
+    def newTheme = state.validColors.find { it.name == next }
+    logger("Saving Theme ${next} which is matched to ${newTheme}","debug")
+    def themeID = newTheme.val
+    def body = [theme: themeID]
+    def data = body
+    logger("Set Intellibrite theme with ${body}","debug")
+    sendPut("/state/intellibrite/setTheme", 'lightModeCallback', body, data)
+	sendEvent(name: "lightingTheme", value: next, isStateChange: true, displayed: true)
+}
 
+def nextTheme() {
+	logger("Next Theme...","debug")
+    moveTheme(true)
+
+}
+
+def prevTheme() {
+	logger("Prev Theme...","debug")
+    moveTheme(true)
+}
+
+def moveTheme(up) {
+	def themes = state.validColors
+    def curTheme = device.currentValue('nextLightingTheme')
+    if (! themes ) {
+    	logger("No Colors loaded during Configuration", "warn")
+    	return
+    }
+    def curIdx = themes.findIndexOf { it.name == curTheme }
+    logger("Looking for nextTheme in ${themes} from ${curTheme} found ${curIdx}","trace")
+    def newIdx
+    if (! curIdx) { curIdx = 0 }
+    if (up) {
+    	if (curIdx == themes.length) {
+    		newIdx = 0
+            } else {
+            newIdx = curIdx + 1
+        }
+    }
+    else {
+    	if (curIdx == 0) {
+        	newIdx = themes.length
+        } else {
+        	newIdx = curIdx - 1
+        }
+    }
+    logger("Selected idx=${newIdx} which is theme ${themes[newIdx]} when going ${up ? 'up' : 'down'} from ${curIdx}","trace")
+    sendEvent(name: "nextLightingTheme", value: themes[newIdx].name)
+}
 
 def componentRefresh(device) {
     logger("Got REFRESH Request from ${device}","debug")
@@ -281,7 +397,7 @@ def setLightMode(mode) {
 def setLightModeByVal(modeVal) {
     logger("Going to light mode ${modeVal}","debug")
     def id = getDataValue("circuitID")
-    def body = [theme: modeVal]   
+    def body = [theme: modeVal]
     logger("Set Intellibrite mode with ${params} - ${data}","debug")
     sendPut("/state/intellibrite/setTheme",'lightModeCallback', body, data)
     sendEvent(name: "switch", value: "on")
@@ -299,7 +415,7 @@ def lightModeCallback(response, data=null) {
 def addHESTChildDevice(namespace, deviceType, dni, options  ) {
 	if (state.isHE) {
     	return addChildDevice(namespace, deviceType, dni, options)
-	} else {    	
+	} else {
     	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
     }
 }
@@ -315,14 +431,7 @@ def getControllerURI(){
 }
 
 private sendGet(message, aCallback=generalCallback, body="", data=null) {
-    def params = [
-        uri: getControllerURI(),
-        path: message,
-        requestContentType: "application/json",
-        contentType: "application/json",
-        body:body
-    ]
-    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    logger("Send GET to with ${body} CB=${aCallback}","debug")
     if (state.isST) {
     	 def hubAction = physicalgraph.device.HubAction.newInstance(
                [
@@ -335,19 +444,26 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
                     ]
                ],
                null,
-               [    
+               [
                 callback : aCallback,
                 type: 'LAN_TYPE_CLIENT'
-               ])            
+               ])
         sendHubCommand(hubAction)
-    } else {    	
+    } else {
+        def params = [
+            uri: getControllerURI(),
+            path: message,
+            requestContentType: "application/json",
+            contentType: "application/json",
+            body:body
+        ]
         asynchttpGet(aCallback, params, data)
-    }    
+    }
 }
 
-private sendPut(message, aCallback=generalCallback, body="", data=null) {    
-    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
-    if (state.isST) {         
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
+    logger("Send PUT to ${message} with ${body} and ${aCallback}","debug")
+    if (state.isST) {
         def hubAction = physicalgraph.device.HubAction.newInstance(
                [
                 method: "PUT",
@@ -359,11 +475,11 @@ private sendPut(message, aCallback=generalCallback, body="", data=null) {
                     ]
                ],
                null,
-               [    
+               [
                 callback : aCallback,
                 type: 'LAN_TYPE_CLIENT'
-               ])            
-        sendHubCommand(hubAction)        
+               ])
+        sendHubCommand(hubAction)
     } else {
      	def params = [
         	uri: getControllerURI(),
@@ -374,7 +490,7 @@ private sendPut(message, aCallback=generalCallback, body="", data=null) {
     	]
         asynchttpPut(aCallback, params, data)
     }
-    
+
 }
 
 def generalCallback(response, data) {
@@ -396,7 +512,7 @@ def toIntOrNull(it) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -405,7 +521,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
       def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":
