@@ -85,7 +85,7 @@ def updated() {
 
 def manageChildren() {
 	logger( "Pool Controller manageChildren starting","debug")
-    getParent().unsubscribe([])
+    // getParent().unsubscribe([])
     manageTempSensors()
     manageBodies()
     managePumps()
@@ -414,12 +414,7 @@ def refreshConfiguration(process = false) {
     }
 }
 
-// ST does not provide data
-def configurationCallback(response) {
-	configurationCallback(response,null)
-}
-
-def configurationCallback(response, data) {
+def configurationCallback(response, data=null) {
     if (parseConfiguration(response, data)) {
         manageChildren()
     } else {
@@ -427,7 +422,7 @@ def configurationCallback(response, data) {
     }
 }
 
-def parseConfiguration(response, data) {
+def parseConfiguration(response, data=null) {
     def msg = response.json
     logger(msg,"trace")
     state.bodies = msg.bodies
