@@ -93,6 +93,8 @@ metadata {
             standardTile("refresh", "device.refresh", height:1,width:1,inactiveLabel: false) {
                 state "default", label:'Refresh', action:"refresh.refresh",  icon:"st.secondary.refresh-icon"
         	}
+            valueTile("dummy", "temperature", height:1,width:1,inactiveLabel: false ) {}
+            
         main "temperature"
         details "temperature", "switch", "setPoint", "heatMode", "refresh"
 
