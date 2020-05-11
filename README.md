@@ -34,11 +34,11 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 
 5. Update your [Nodejs-Poolcontroller-webclient](https://github.com/tagyoureit/nodejs-poolController-webClient) installation with the Hubitat/SmartThings Event interface: 
 	* Add the file "output_to_Hubitat_SmartThings.js" to your Webclient main folder
-	* Edit the Servers variable in that file to point to your Hubitat or Smarthings Hub:
+	* Edit the Hubs variable in that file to point to your Hubitat or Smarthings Hub:
 ```
 		// Use Port 39501 for Hubitat
 		// use port 39500 for SmartThings
-		var servers = [
+		var hubs = [
     			{address: '192.168.1.100', port: 39501},
     			{address: '192.168.1.101', port: 39500}
 			]       
