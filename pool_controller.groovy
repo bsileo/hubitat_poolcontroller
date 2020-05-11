@@ -70,8 +70,13 @@ metadata {
             	childDeviceTile("setPoint-${i}","body ${i}", height:1,width:1,childTileName:"setPoint")  
                 childDeviceTile("heatMode-${i}","body ${i}", height:1,width:1,childTileName:"heatMode")  
                 childDeviceTile("temperature-${i}","body ${i}", height:1,width:1,childTileName:"temperature")  
-                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:1,childTileName:"dummy")                  
+                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:3,childTileName:"dummy")                  
             }
+            
+            childDeviceTile("intellibritePrev","intellibrite0", height:1,width:1,childTileName:"prevTheme")  
+            childDeviceTile("intellibriteTheme","intellibrite0", height:1,width:1,childTileName:"themeSelect")  
+            childDeviceTile("intellibriteNext","intellibrite0", height:1,width:1,childTileName:"nextTheme")  
+            childDeviceTile("dummy-ib1","intellibrite0", height:1,width:3,childTileName:"dummy")  
             
             // Chlorinators
             for (i in 1..2) {
@@ -97,9 +102,9 @@ metadata {
             main ("mainSwitch")
         	details (               
                 "airTemp","solarTemp","dummy","refresh",
-                "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
-                "setPoint-2","heatMode-2","temperature-2", "dummy-b-2", "dummy-b-2", "dummy-b-2",
-                
+                "setPoint-1","heatMode-1","temperature-1", "dummy-b-1",
+                "setPoint-2","heatMode-2","temperature-2", "dummy-b-2",
+                "intellibritePrev","intellibriteTheme","intellibriteNext","dummy-ib1",
                 "saltLevel-1","saltRequired-1","superClorinate-1","superChlorHours-1","currentOutput-1","poolSetpoint-1","spaSetPoint-1","chlorStatus-1",
                 "saltLevel-2","saltRequired-2","superClorinate-2","superChlorHours-2","currentOutput-2","poolSetpoint-2","spaSetPoint-2","chlorStatus-2",
                 "Circuit 2 Switch","Circuit 3 Switch","Circuit 4 Switch","Circuit 5 Switch","Circuit 6 Switch","Circuit 7 Switch",
