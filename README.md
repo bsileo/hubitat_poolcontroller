@@ -11,12 +11,7 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 
 1. Install and configure [Nodejs-Poolcontroller](https://github.com/tagyoureit/nodejs-poolController) (version [NEXT](https://github.com/tagyoureit/nodejs-poolController/tree/next) is required!)
           https://github.com/tagyoureit/nodejs-poolController
-2. Update your [Nodejs-Poolcontroller-webclient](https://github.com/tagyoureit/nodejs-poolController-webClient) installation with the Hubitat interface:  (details pending)
-   ```
-   	"address": "192.168.1.XXX",
-        "port": "39501"        
-   ```
-3. Open the Apps Code, "New App" and then either:
+2. Open the Apps Code, "New App" and then either:
 
 - Click Import, then paste in the URL to the file: https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_app.groovy
 
@@ -24,7 +19,7 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 
 	* [pool_controller_app.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_app.groovy) 
      	
-4. Install all of the Drivers into Drivers Code following this same procedure:
+3. Install all of the Drivers into Drivers Code following this same procedure:
      	
 	* [pool_controller.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller.groovy)
 	* [pool_controller_body.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/NJSPC6/pool_controller_body.groovy)
@@ -35,5 +30,25 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 	* [pool_controller_pump.groovy](https://github.com/bsileo/hubitat_poolcontroller/blob/master/pool_controller_pump.groovy)
 
 
-5. Go to Apps, Add User App and create a "Pool Controller 6" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
+4. Go to Apps, Add User App and create a "Pool Controller 6" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
+
+5. Update your [Nodejs-Poolcontroller-webclient](https://github.com/tagyoureit/nodejs-poolController-webClient) installation with the Hubitat/SmartThings Event interface: 
+	* Add the file "output_to_Hubitat_SmartThings.js" to your Webclient main folder
+	* Edit the Hubs variable in that file to point to your Hubitat or Smarthings Hub:
+```
+		// Use Port 39501 for Hubitat
+		// use port 39500 for SmartThings
+		var hubs = [
+    			{address: '192.168.1.100', port: 39501},
+    			{address: '192.168.1.101', port: 39500}
+			]       
+```
+
+	* Run this application with:
+
+```
+		node output_to_Hubitat_SmartThings.js
+```
+
+
 6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
