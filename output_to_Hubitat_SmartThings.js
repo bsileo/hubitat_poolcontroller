@@ -3,9 +3,13 @@ var io = require('socket.io-client');
 var patch = require('socketio-wildcard')(io.Manager);
 // var configFile = container.settings.getConfig()
 
-var servers = [
-    {address: '192.168.2.106', port: 39501},
-    {address: '192.168.2.128', port: 39500}
+
+// Use Port 39501 for Hubitat
+// use port 39500 for SmartThings
+
+var hubs = [
+    {address: '192.168.1.100', port: 39501},
+    {address: '192.168.1.101', port: 39500}
 ]
 
 var serverURL;
@@ -45,7 +49,7 @@ function notify(event, data, address, port) {
 }
 
 socket.on('*', function (data) {
-    servers.forEach( (server) => {
+    hubs.forEach( (server) => {
         notify(data.data[0], data.data[1], server.address, server.port);
     })
 });
