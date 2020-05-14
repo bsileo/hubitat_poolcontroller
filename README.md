@@ -47,6 +47,6 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 
 Run this application with the following:  See this [PM2 Wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/PM2) to set this up to run at boot
 
-``` node output_to_Hubitat_SmartThings.js
+`node output_to_Hubitat_SmartThings.js`
 
 6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
