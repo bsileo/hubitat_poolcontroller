@@ -1,5 +1,7 @@
-# What is the Hubitat Pool Controller?
-A collection of devices designed to interface with a nodejs-poolController instance which is talking on the RS-485 bus to allow viewing and setting pool control options. Includes devices to manage the Pool pump, lights and heater, the spa pump and heater, the chlorinator, all Circuits and Features, and Intellichem devices.
+# What is the Hubitat/SmartThings Pool Controller?
+A collection of devices designed to interface with a nodejs-poolController instance which is talking on the RS-485 bus to allow viewing and setting pool control options. Includes devices to manage the Pool pump, lights and heater, the spa pump and heater, the chlorinator, all Circuits and Features, and Intellichem devices. 
+
+This code is fully compatible with BOTH SmartThings (classic App) and Hubitat.  The [SHPL](https://github.com/SANdood/SmartThings-Hubitat-Portability-Library) is awesome and made thgat possible so thanks to [Barry Burke](https://github.com/SANdood)
 
 # License
 Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
