@@ -84,11 +84,13 @@ def deviceDiscovery() {
     verifyDevices()
     return dynamicPage(name: "deviceDiscovery", title: "Locate Pool Controller...", nextPage: "selectDevice", refreshInterval: 2, install: false, uninstall: true) {
         section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see the device you want to connect to in the verified section below:", hideable:false, hidden:false) {
-            paragraph "${ state.isHE ? '<h2>' : ''}Verfied:${state.isHE ? '</h2>' : ''}"
+            paragraph "${ state.isHE ? '<h2>' : ''}Discovered devices:${ state.isHE ? '</h2>' : ''}"
+            paragraph describeUnverifiedDevices()
+            
+            paragraph "${ state.isHE ? '<h2>' : ''}Verfied devices:${state.isHE ? '</h2>' : ''}"
             paragraph describeDevices()
             if (state.isHE) { input "refreshDiscovery", "button", title: "Refresh" }
-            paragraph "${ state.isHE ? '<h2>' : ''}All devices:${ state.isHE ? '</h2>' : ''}"
-            paragraph describeUnverifiedDevices()
+            
 	    }
         section("Manual poolController Configuration", hideable:true, hidden:false) {
             href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
@@ -158,7 +160,7 @@ def manualPage() {
 		section("Controller") {
             input(name:"controllerIP", type: "text", title: "Controller IP Address", required: true, displayDuringSetup: true, defaultValue:"192.168.2.169")
           	input(name:"controllerPort", type: "number", title: "Controller Port", required: true, displayDuringSetup: true, defaultValue:"4200")
-          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (AA:BB:CC:11:22:33)", required: true, displayDuringSetup: true, defaultValue: "b8-27-eb-bf-81-b0")
+          	input(name:"controllerMac", type: "text", title: "Controller MAC Address (B8:27:EB:AA:11:22)", required: true, displayDuringSetup: true, defaultValue: "b8:27:eb:aa:11:b0")
         }
     }
 }
