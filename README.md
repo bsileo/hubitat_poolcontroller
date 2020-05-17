@@ -1,7 +1,7 @@
 # What is the Hubitat/SmartThings Pool Controller?
 A collection of devices designed to interface with a nodejs-poolController instance which is talking on the RS-485 bus to allow viewing and setting pool control options. Includes devices to manage the Pool pump, lights and heater, the spa pump and heater, the chlorinator, all Circuits and Features, and Intellichem devices. 
 
-This code is fully compatible with BOTH SmartThings (classic App) and Hubitat.  The [SHPL](https://github.com/SANdood/SmartThings-Hubitat-Portability-Library) is awesome and made thgat possible so thanks to [Barry Burke](https://github.com/SANdood)
+This code is fully compatible with BOTH SmartThings (classic App) and Hubitat.  The [SHPL](https://github.com/SANdood/SmartThings-Hubitat-Portability-Library) is awesome and made that possible so thanks to [Barry Burke](https://github.com/SANdood)
 
 # License
 Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
@@ -34,21 +34,18 @@ This version is NOT compatible with the 5.3.3 version of nodejs-poolController. 
 
 4. Go to Apps, Add User App and create a "Pool Controller 6" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
 
-5. Update your [Nodejs-Poolcontroller-webclient](https://github.com/tagyoureit/nodejs-poolController-webClient) installation with the Hubitat/SmartThings Event interface to get updates pushed to the hub:
-	* Add the file "output_to_Hubitat_SmartThings.js" to your Webclient main folder
-	* Edit the "hubs" variable in that file to point to your Hubitat or Smarthings Hub:
+5. Enable the Event interface in the poolController. Look for a section like the following and make the appropaite changes:
 
 ```
-		// Use Port 39501 for Hubitat
-		// use port 39500 for SmartThings
-		var hubs = [
-    			{address: '192.168.1.100', port: 39501},
-    			{address: '192.168.1.101', port: 39500}
-			]
+ "smartThings": {
+        "name": "SmartThings",
+        "enabled": true,
+        "fileName": "smartThings.json",
+        "globals": {},
+        "options": {
+          "host": "10.0.0.39",
+          "port": 39501
+        }
 ```
-
-Run this application with the following:  See this [PM2 Wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/PM2) to set this up to run at boot
-
-`node output_to_Hubitat_SmartThings.js`
 
 6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
