@@ -20,7 +20,6 @@ metadata {
         attribute "driveState", "number"
         attribute "mode", "number"
         attribute "command", "String"
-    
 	}
 
     preferences {
@@ -98,7 +97,7 @@ def parse(json) {
     sendEvent([name: "driveState", value: json.driveState])
     sendEvent([name: "command", value: json.command])
     sendEvent([name: "mode", value: json.mode])
-    sendEvent([name: "switch", value: json.rpm > 0 ? 'On' : 'Off', displayed:false,isStateChange:false])
+    sendEvent([name: "switch", value: json.rpm > 0 ? 'on' : 'off'])
     if (json.status) {
         sendEvent([name: "Status", value: json.status.name, descriptionText: "Pump status is currently ${json.status.desc}"])
     }

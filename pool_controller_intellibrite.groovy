@@ -293,7 +293,7 @@ def parseRefresh (response, data=null) {
         json.circuits.each {
             logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
             if (it.circuit.id.toString() == getDataValue("circuitID").toString()) {
-                 sendEvent([[name: "switch", value: it.circuit.isOn ? 'On' : 'Off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
+                 sendEvent([[name: "switch", value: it.circuit.isOn ? 'on' : 'off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
             }
         }
     } else {
