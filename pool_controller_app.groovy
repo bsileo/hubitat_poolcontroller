@@ -1,5 +1,5 @@
 /**
- *  Service Manager for attaching Hubitat to a nodejsPoolController
+ *  Service Manager for attaching SmartThings/Hubitat to a nodejsPoolController
  *
  *  Copyright 2020 Brad Sileo
  *
@@ -8,7 +8,7 @@ definition(
 		name: "Pool Controller 6",
 		namespace: "bsileo",
 		author: "Brad Sileo",
-		description: "This is App to connect to the nodejs_poolController (version > 6) and create devices to manage it within Hubitat/SmartThings",
+		description: "This is the App to connect to a nodejs_poolController (version > 6) instance and create devices to manage it within Hubitat/SmartThings",
 		category: "",
 		iconUrl: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn.png",
 		iconX2Url: "http://cdn.device-icons.smartthings.com/Health & Wellness/health2-icn@2x.png",
@@ -48,7 +48,7 @@ def appHome() {
     def install = true
     getHubPlatform()
     return dynamicPage(name: "home", title: "NodeJS Pool Controller", refreshInterval: 0, install: false, uninstall: true) {
-      section("Device Discovery and Setup", hideable:true, hidden:false) {
+      section("Setup a new Device", hideable:false, hidden:false) {
          href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")         
       }
     }
@@ -89,6 +89,7 @@ def deviceDiscovery() {
             
             paragraph "${ state.isHE ? '<h2>' : ''}Verfied devices:${state.isHE ? '</h2>' : ''}"
             paragraph describeDevices()
+            paragraph "(Verified devices are ready to be selected and installed on the next page)"
             if (state.isHE) { input "refreshDiscovery", "button", title: "Refresh" }
             
 	    }
@@ -182,7 +183,7 @@ def selectDevice() {
 		options["${key}"] = value
 	}
     return dynamicPage(name: "selectDevice", title: "Select the Pool Controller...", nextPage: "poolConfig", refreshInterval: 0, install: false, uninstall: true) {
-        section("Select your device:", hideable:false, hidden:false) {
+        section("Select the poolController device you want to install:", hideable:false, hidden:false) {
             input(name: "selectedDevice", title:"Select A Device", type: "enum", required:true, multiple:false, description: "Tap to choose", params: params,
             	  options: options, submitOnChange: true, width: 6)
 		}
@@ -198,7 +199,16 @@ def poolConfig() {
             section("Name") {
                 input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:state.equipment.model
             }
-            section("Please verify the options below") {
+            section("Options") {
+                 input( 
+                     name: "prefixNames",
+                     title:"Prefix Child Device Names with my name?",
+                     type: "bool",
+                     defaultValue: false,
+                     displayDuringSetup: true
+                 )
+            }
+            section("Please verify the options below:") {
               paragraph describeConfig()
             }
        }
@@ -214,8 +224,7 @@ private String describeConfig() {
     // log.debug("SORTED ${sorted}")
     def builder = new StringBuilder()
     def bodies = state.bodies.findAll{element -> element.isActive}
-    builder << "${state.isHE ? '<ul class="""device""">' : ''}"
-    builder << "${state.isHE ? '<li class=\"device\">' : ''}Config Version ${state.configVersion.lastUpdated}${state.isHE ? '</li>' : """\r\n"""}"
+    builder << "${state.isHE ? '<ul class="""device""">' : ''}"    
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water${state.isHE ? '</li>' : """\r\n"""}"    
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.circuits.findAll{element -> element.isActive}.size()} circuits${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.features.findAll{element -> element.isActive}.size()} features${state.isHE ? '</li>' : """\r\n"""}"    
@@ -508,6 +517,7 @@ def createOrUpdateDevice(mac,ip,port) {
         log.info "The Pool Controller Device with DNI: ${DNI} already exists...update config to ${ip}:${port}"
         d.updateDataValue("controllerIP",ip)
         d.updateDataValue("controllerPort",port)
+        d.updateDataValue("prefixName",prefixNames)
         d.updated()
    }
    else {
@@ -519,6 +529,7 @@ def createOrUpdateDevice(mac,ip,port) {
 				"controllerMac": dni,
 				"controllerIP": ip,
 				"controllerPort": port,
+                "prefixName": prefixNames
 				]
 			])
    }

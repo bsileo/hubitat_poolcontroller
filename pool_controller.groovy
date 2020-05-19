@@ -35,6 +35,14 @@ metadata {
 
 	preferences {
          section("General:") {
+              input( 
+                 name: "prefixNames",
+                 title:"Prefix Child Device Names with my name?",
+                 type: "bool",
+                 defaultValue: false,
+                 displayDuringSetup: true
+             )
+
             input (
         	name: "configLoggingLevelIDE",
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
@@ -70,13 +78,8 @@ metadata {
             	childDeviceTile("setPoint-${i}","body ${i}", height:1,width:1,childTileName:"setPoint")  
                 childDeviceTile("heatMode-${i}","body ${i}", height:1,width:1,childTileName:"heatMode")  
                 childDeviceTile("temperature-${i}","body ${i}", height:1,width:1,childTileName:"temperature")  
-                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:3,childTileName:"dummy")                  
+                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:1,childTileName:"dummy")                  
             }
-            
-            childDeviceTile("intellibritePrev","intellibrite0", height:1,width:1,childTileName:"prevTheme")  
-            childDeviceTile("intellibriteTheme","intellibrite0", height:1,width:1,childTileName:"themeSelect")  
-            childDeviceTile("intellibriteNext","intellibrite0", height:1,width:1,childTileName:"nextTheme")  
-            childDeviceTile("dummy-ib1","intellibrite0", height:1,width:3,childTileName:"dummy")  
             
             // Chlorinators
             for (i in 1..2) {
@@ -102,9 +105,9 @@ metadata {
             main ("mainSwitch")
         	details (               
                 "airTemp","solarTemp","dummy","refresh",
-                "setPoint-1","heatMode-1","temperature-1", "dummy-b-1",
-                "setPoint-2","heatMode-2","temperature-2", "dummy-b-2",
-                "intellibritePrev","intellibriteTheme","intellibriteNext","dummy-ib1",
+                "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
+                "setPoint-2","heatMode-2","temperature-2", "dummy-b-2", "dummy-b-2", "dummy-b-2",
+                
                 "saltLevel-1","saltRequired-1","superClorinate-1","superChlorHours-1","currentOutput-1","poolSetpoint-1","spaSetPoint-1","chlorStatus-1",
                 "saltLevel-2","saltRequired-2","superClorinate-2","superChlorHours-2","currentOutput-2","poolSetpoint-2","spaSetPoint-2","chlorStatus-2",
                 "Circuit 2 Switch","Circuit 3 Switch","Circuit 4 Switch","Circuit 5 Switch","Circuit 6 Switch","Circuit 7 Switch",
@@ -119,19 +122,21 @@ metadata {
 
 def configure() {
   getHubPlatform()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
   refreshConfiguration(true)
 }
 
 def installed() {
 	getHubPlatform()
-    refreshConfiguration(true)
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
+    device.updateSetting("prefixNames",getDataValue("prefixName"))
+    refreshConfiguration(true)    
 }
 
 def updated() {
   getHubPlatform()
-  refreshConfiguration(true)
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
+  device.updateSetting("prefixNames",getDataValue("prefixName"))  
 }
 
 def manageChildren() {
@@ -155,18 +160,21 @@ def manageTempSensors() {
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
         	airTemp = addHESTChildDevice(namespace,deviceType, getChildDNI("airTemp"),
-            	                     [ label: "${device.displayName} Air Temperature", componentName: "airTemp", componentLabel: "${device.displayName} Air Temperature",
-                	                  isComponent:false, completedSetup:true])
+            	                     [ label: getChildName("Air Temperature"), 
+                                      componentName: "airTemp", 
+                                      componentLabel: getChildName("Air Temperature"),
+                	                  isComponent:true, 
+                                      completedSetup:true])
 	    logger("Created Air temperature child device","info")
     }
 
     def solarTemp = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
     if (!solarTemp) {
        		solarTemp = addHESTChildDevice(namespace,deviceType, getChildDNI("solarTemp"),
-                                  [ label: "${device.displayName} Solar Temperature",
+                                  [ label: getChildName("Solar Temperature"),
                                   componentName: "solarTemp",
-                                  componentLabel: "${device.displayName} Solar Temperature",
-                                   isComponent:false,
+                                  componentLabel: getChildName("Solar Temperature"),
+                                   isComponent:true,
                                    completedSetup:true])
         logger(("Created Solar temperature child device"),"info")
     }
@@ -182,20 +190,19 @@ def manageBodies() {
                 logger(("Create BODY child device"),"debug")
                 	body = addHESTChildDevice("bsileo","Pool Controller Body", getChildDNI("body",value.id),
                     [
-                        label: "${device.displayName} ${value.name}",
+                        label: getChildName(value.name),
                         componentName: "body ${value.id}",
-                        componentLabel: "${device.displayName} ${value.name} Body",
+                        componentLabel: getChildName(value.name),
                         bodyID: value.id.toString(),
                         circuitID: value.circuit.toString(),
-                        isComponent:false,
-                        completedSetup:true
+                        isComponent:false                        
                     ]
                 )
                 logger( "Created new Body called ${value.name}","info")
             } else {
                 body.updateDataValue("circuitID",value.circuit.toString())
                 body.updateDataValue("bodyID",value.id.toString())
-                logger( "Updated Body called ${value.name}","info")
+                logger( "Found existing Body called ${value.name} and updated it","info")
             }
         }
     }
@@ -212,8 +219,8 @@ def managePumps () {
                 def cID = value.circuits ? value.circuits[0].circuit : ''
                  	pump = addHESTChildDevice("bsileo","Pool Controller Pump", getChildDNI("pump",value.id),
                                  [completedSetup: true,
-                                    label: "${device.displayName} (${pName})",
-                                    componentLabel:"${device.displayName} (${pName})",
+                                    label: getChildName(pName),
+                                    componentLabel:getChildName(pName),
                                     isComponent:false,
                                     componentName: pName,
                                     pumpID: value.id.toString(),
@@ -224,7 +231,7 @@ def managePumps () {
             } else {
                 pump.updateDataValue("pumpType",value.type.toString())
                 pump.updateDataValue("circuitID",cID.toString())
-                logger( "Updated Pump called ${pName}","info")
+                logger( "Found existing Pump called ${pName} and updated it","info")
             }
         }
     }
@@ -235,7 +242,7 @@ def manageHeaters() {
     heaters.each {data ->
         if (data.isActive) {
             def heat = getChild("heater",data.id)
-            def label = "${device.displayName} ${data.name}"
+            def label = getChildName(data.name)
             if (!heat) {
                 def name = "heater${data.id}"
                 heat = addHESTChildDevice("bsileo","Pool Controller Heater", getChildDNI("heater",data.id),
@@ -253,7 +260,7 @@ def manageHeaters() {
                 heat.updateDataValue("heaterID", data.id.toString())
                 heat.updateDataValue("bodyID", data.body.toString())
                 heat.updateDataValue("circuitID", data.body.toString())
-                logger( "Updated existing Heater called ${label}" ,"info")
+                logger( "Found existing Heater called ${label} and updated it" ,"info")
             }
         }
     }
@@ -270,7 +277,7 @@ def manageFeatureCircuits() {
             try {
                 def auxButton = getChild("feature",data.id)
                 if (!auxButton) {
-                    def auxLabel = "${device.displayName} Feature ${data.name}"
+                    def auxLabel = getChildName(data.name)
                 	log.info "Create Feature switch ${auxLabel} Named=${auxname}"
                     auxButton = addHESTChildDevice(namespace,deviceType, getChildDNI("feature",data.id),
                             [
@@ -287,7 +294,7 @@ def manageFeatureCircuits() {
                 else {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
-                    logger("Found existing Feature Switch for ${data.name} and Updated it","info")
+                    logger("Found existing Feature Switch for ${data.name} and updated it","info")
                 }
                 if(state.isST) {
                     getParent().subscribeToCommand(auxButton,"on",componentOn)
@@ -310,7 +317,7 @@ def manageCircuits() {
         if (data.friendlyName == "NOT USED") return
         if (data.isActive) {
             def auxname = "circuit${data.id}"
-            def auxLabel = "${device.displayName} Circuit ${data.name}"
+            def auxLabel = getChildName(data.name)
             try {
                 def auxButton = getChild("circuit",data.id)
                 if (!auxButton) {
@@ -330,7 +337,7 @@ def manageCircuits() {
                 else {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
-                    logger("Found existing Circuit for ${data.name} Updated","info")
+                    logger("Found existing Circuit for ${data.name} and updated it","info")
                 }
                 if (state.isSt) {
                     getParent().subscribeToCommand(auxButton,"on",componentOn)
@@ -350,13 +357,13 @@ def manageChlorinators() {
     def chlors = state.chlorinators
     logger("chlors->${chlors}","trace")
     if (!chlors) {
-       logger("No Chlorinator devices found","info")
+       logger("No Chlorinator devices found on Controller","info")
        return
    }
     chlors.each {data ->
         if (data.isActive) {
             def name = "chlorinator-${data.id}"
-            def label = "${device.displayName} Chlorinator ${data.id}"
+            def label = getChildName("Chlorinator ${data.id}")
             def chlor = getChild("chlorinator",data.id)
             if (!chlor) {
                 	chlor = addHESTChildDevice("bsileo","Pool Controller Chlorinator", getChildDNI("chlorinator",data.id),
@@ -372,7 +379,7 @@ def manageChlorinators() {
             } else {
                 chlor.updateDataValue("address", data.address.toString())
                 chlor.updateDataValue("chlorId", data.id.toString())
-                logger( "Updated Pool Chlorinator ${label}" ,"info")
+                logger( "Found existing Pool Chlorinator ${label} and updated it" ,"info")
             }
         }
     }
@@ -381,13 +388,13 @@ def manageChlorinators() {
 def manageIntellichem() {
    def chems = state.intellichem
    if (!chems) {
-       logger("No Intellichem devices found","info")
+       logger("No Intellichem devices found on Controller","info")
        return
    }
    chems.each {data ->
         if (data.isActive) {
             def name = "intellichem${data.id}"
-            def label = "${device.displayName} Intellichem ${data.id}"
+            def label = getChildName("Intellichem ${data.id}")
             try {
                 def existing = getChild("intellichem",data.id)
                 if (!existing) {
@@ -403,7 +410,7 @@ def manageIntellichem() {
                     logger( "Success - Created ${name}" ,"debug")
                 }
                 else {
-                    logger("Found existing ${name} Updated","info")
+                    logger("Found existing INtellichem ${name} and updated it","info")
                 }
             }
             catch(e)
@@ -425,7 +432,7 @@ def manageLightGroups() {
                 if (!existing) {
                 	def name = "intellibrite${light.id}"
                     logger("Creating Intellibrite Named ${name}","trace")
-                    def label = "${device.displayName} Intellibrite ${light.id}"
+                    def label = getChildName("Intellibrite ${light.id}")
                     existing = addHESTChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
                             [
                                 completedSetup: true,
@@ -439,7 +446,7 @@ def manageLightGroups() {
                 }
                 else {
                     existing.updateDataValue("circuitID",cID.toString())
-                    logger("Found existing Intellibrite ${light.id} Updated","info")
+                    logger("Found existing Intellibrite ${light.id} and updated it","info")
                 }
             }
             catch(e)
@@ -450,6 +457,15 @@ def manageLightGroups() {
     } else {
        logger( "No Intellibrites present","info")
     }
+}
+
+
+def getChildName(name) {
+    def result = name
+    if (settings.prefixName) {
+        result = "${device.displayName} (${name})"
+    }
+    return name
 }
 
 
