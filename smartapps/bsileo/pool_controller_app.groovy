@@ -5,7 +5,7 @@
  *
  */
 definition(
-		name: "Pool Controller 6",
+		name: "Pool Controller",
 		namespace: "bsileo",
 		author: "Brad Sileo",
 		description: "This is the App to connect to a nodejs_poolController (version > 6) instance and create devices to manage it within Hubitat/SmartThings",

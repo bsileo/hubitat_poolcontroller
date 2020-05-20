@@ -3,5 +3,66 @@
   "author": "Brad Sileo",
   "version": "0.5",
   "minimumHEVersion": "2.1.9",
-  "dateReleased": "2020-05-20"
+  "dateReleased": "2020-05-20",
+  "apps": [
+    {
+      "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
+      "name": "Pool Controller 6",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/smartapps/bsileo/pool_controller_app.groovy",
+      "required": true,
+      "oauth": false
+    }
+  ],
+  "drivers": [
+    {
+      "id": "a1040a06-02b9-470d-9e61-c24c6d0df620",
+      "name": "Pool Controller",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller.groovy",
+      "required": true
+    },
+    {
+      "id": "d2c5d427-6e64-4746-9b4c-c4d1dc8348da",
+      "name": "Pool Controller Body",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_body.groovy",
+      "required": true
+    },
+    {
+      "id": "c79e3b5d-52cb-4fec-95d3-6669a3fd2479",
+      "name": "Pool Controller Chlorinator",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_chlorinator.groovy",
+      "required": true
+    },
+    {
+      "id": "d5b73bc8-714e-4f9e-ab89-6244b0d9e0e3",
+      "name": "Pool Controller Heater",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_heater.groovy",
+      "required": true
+    },
+    {
+      "id": "fc8f04ee-546a-4d7c-8d53-7a1c997e85b9",
+      "name": "Pool Controller Intellibrite",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_intellibrite.groovy",
+      "required": true
+    },
+    {
+      "id": "48c32c82-f3fe-4b04-8bc8-9be7b526c56a",
+      "name": "Pool Controller Intellichem",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_intellichem.groovy",
+      "required": true
+    },
+    {
+      "id": "e22b4e36-c155-43d8-bd20-9b739e22a6bb",
+      "name": "Pool Controller Pump",
+      "namespace": "bsileo",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool_controller_pump.groovy",
+      "required": true
+    }
+  ]
 }
