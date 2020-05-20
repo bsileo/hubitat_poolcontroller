@@ -51,7 +51,32 @@ def appHome() {
       section("Setup a new Device", hideable:false, hidden:false) {
          href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")         
       }
+        section("Current Installation") {
+            paragraph describeInstall()
+        }
     }
+}
+
+def describeInstall() {
+    def devs = getChildDevices()
+    log.debug("DEVS ${devs}")
+    def builder = new StringBuilder()
+    if (state.isHE) {
+    	builder << '<ul class="device">'
+    }
+    devs.each {
+        device ->
+            if (state.isHE) {
+            	builder << (
+                    "<li class='device'>${device.name} - <a href='/device/edit/${device.getId()}'>Open Device</a></li>"
+                	)
+            } else {
+            	builder << ( "${device.name}"
+                	)
+            }
+    }
+    if (state.isHE) { builder << '</ul>' }
+    builder.toString()
 }
 
 // UPNP Device Discovery Code
@@ -126,7 +151,7 @@ private String describeDevices() {
                 	"<li class='device'>${device.name} ${ip}:${port} (${device.mac})</li>"
                 	)
             } else {
-            	builder << ( "${device.name} ${ip}:${port} (${device.mac})"
+            	builder << ( "${device.name} ${ip}:${port} (${device.mac})\r\n"
                 	)
             }
     }
@@ -148,7 +173,7 @@ private String describeUnverifiedDevices() {
                 	"<li class='device'>${ip}:${port} (${device.mac})</li>"
                 	)
             } else {
-            	builder << ( "${ip}:${port} (${device.mac})" )
+            	builder << ( "${ip}:${port} (${device.mac})\r\n" )
             }
     }
     if (state.isHE) { builder << '</ul>' }
@@ -509,19 +534,20 @@ def selectedDeviceDNI() {
 
 def createOrUpdateDevice(mac,ip,port) {
 	def hub = location.hubs[0]
+    
 	//log.error("WARNING Using TEST MAC")
     //mac = mac + "-test"
     def dni = mac.replaceAll("-",'').replaceAll(':','').toUpperCase()
 	def d = getChildDevice(dni)
     if (d) {
-        log.info "The Pool Controller Device with DNI: ${DNI} already exists...update config to ${ip}:${port}"
+        log.info "The Pool Controller Device with DNI: ${dni} already exists...update config to ${ip}:${port} and Names: ${prefixNames}"
         d.updateDataValue("controllerIP",ip)
-        d.updateDataValue("controllerPort",port)
-        d.updateDataValue("prefixName",prefixNames)
+        d.updateDataValue("controllerPort",port)        
+        d.updateDataValue("prefixNames",prefixNames ? 'true' : 'false')        
         d.updated()
    }
    else {
-   		log.info "Creating Pool Controller Device with DNI: ${dni}"
+       log.info "Creating Pool Controller Device with DNI: ${dni} at ${ip}:${port} and names: ${prefixNames}"
 		d = addChildDevice("bsileo", "Pool Controller", dni, hub.id, [
 			"label": deviceName,
             "completedSetup" : true,
@@ -529,7 +555,7 @@ def createOrUpdateDevice(mac,ip,port) {
 				"controllerMac": dni,
 				"controllerIP": ip,
 				"controllerPort": port,
-                "prefixName": prefixNames
+                "prefixNames": prefixNames
 				]
 			])
    }

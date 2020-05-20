@@ -34,15 +34,7 @@ metadata {
     }
 
 	preferences {
-         section("General:") {
-              input( 
-                 name: "prefixNames",
-                 title:"Prefix Child Device Names with my name?",
-                 type: "bool",
-                 defaultValue: false,
-                 displayDuringSetup: true
-             )
-
+         section("General:") {             
             input (
         	name: "configLoggingLevelIDE",
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
@@ -128,15 +120,13 @@ def configure() {
 
 def installed() {
 	getHubPlatform()
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
-    device.updateSetting("prefixNames",getDataValue("prefixName"))
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'      
     refreshConfiguration(true)    
 }
 
 def updated() {
   getHubPlatform()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
-  device.updateSetting("prefixNames",getDataValue("prefixName"))  
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'    
 }
 
 def manageChildren() {
@@ -462,10 +452,11 @@ def manageLightGroups() {
 
 def getChildName(name) {
     def result = name
-    if (settings.prefixName) {
+    def prefix = getDataValue("prefixNames") == "true" ? true : false    
+    if (prefix) {
         result = "${device.displayName} (${name})"
     }
-    return name
+    return result
 }
 
 
