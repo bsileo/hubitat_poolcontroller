@@ -727,7 +727,6 @@ def spaPumpOff() {
 // **********************************
 def componentRefresh(device) {
     logger("Got REFRESH Request from ${device}","trace")
-
 }
 
 def componentOn(device) {

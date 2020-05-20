@@ -127,7 +127,7 @@ def parse(body) {
         sendEvent([name: "heatMode", value: body.heatMode.desc])
     }
     String unit = "°${location.temperatureScale}"
-    if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
+    if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "On" : "Off" ]) }
     if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }
 }
 
