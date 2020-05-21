@@ -9,9 +9,8 @@
 metadata {
 	definition (name: "Pool Controller Intellichem",
             namespace: "bsileo",
-            author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_intellichem.groovy')
-    {
+            author: "Brad Sileo"
+        {
 		capability "Refresh"
         capability "pHMeasurement"
 
@@ -295,7 +294,7 @@ def toIntOrNull(it) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -304,7 +303,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
       def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":

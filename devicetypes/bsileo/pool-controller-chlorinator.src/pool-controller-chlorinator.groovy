@@ -9,8 +9,8 @@
 metadata {
 	definition (name: "Pool Controller Chlorinator",
             namespace: "bsileo",
-            author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_chlorinator.groovy') {
+            author: "Brad Sileo"
+        {
 		capability "Refresh"
         capability "Switch"
 

@@ -9,8 +9,8 @@
 metadata {
 	definition (name: "Pool Controller Pump",
         namespace: "bsileo",
-        author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_pump.groovy') {
+        author: "Brad Sileo"
+        {
 	    capability "Switch"
         capability "PowerMeter"
         capability "Refresh"

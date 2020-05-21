@@ -10,8 +10,8 @@
 metadata {
 	definition (name: "Pool Controller Heater",
             namespace: "bsileo",
-            author: "Brad Sileo",
-            importUrl: 'https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/pool_controller_water_thermostat.groovy') {
+            author: "Brad Sileo"
+        {
 		capability "Temperature Measurement"
 		capability "Refresh"
         attribute "heatingSetpoint", "NUMBER"
