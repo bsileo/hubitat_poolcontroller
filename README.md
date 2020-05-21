@@ -18,7 +18,7 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 2. Install and configure the [Hubitat Package Manager](https://github.com/dcmeglio/hubitat-packagemanager) and use it to install this code
 
 ## SmartThings - GitHub Integration
-2. Add the GitHub Repository to your  My SmartApps and My Device Handlers:
+2. Add the GitHub Repository to your  My SmartApps and My Device Handlers. Do an "Update from Repo" for [My SmartApps](https://graph.api.smartthings.com/ide/apps) and [My Device Handlers](https://graph.api.smartthings.com/ide/devices) and Publish to install
 - Namespace: bsileo
 - Name: hubitat_poolcontroler
 - Branch: master
@@ -28,7 +28,7 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 
 - Paste the code for the Master App into it and Save:
 
-	* [pool_controller_app.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/smartapps/bsileo/pool_controller_app.groovy)
+	* [pool_controller_app.groovy](https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/smartapps/bsileo/pool-controller.src/pool-controller.groovy)
 
 3. Install all of the [Drivers](https://github.com/bsileo/hubitat_poolcontroller/tree/master/devicetypes/bsileo) into Drivers Code following this same procedure:
 
