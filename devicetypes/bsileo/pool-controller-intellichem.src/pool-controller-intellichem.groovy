@@ -9,9 +9,7 @@
  *  version: 0.9.1
  */
 metadata {
-	definition (name: "Pool Controller Intellichem",
-            namespace: "bsileo",
-            author: "Brad Sileo"
+	definition (name: "Pool Controller Intellichem", namespace: "bsileo", author: "Brad Sileo" )
         {
 		capability "Refresh"
         capability "pHMeasurement"

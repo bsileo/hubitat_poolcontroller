@@ -10,9 +10,7 @@
  */
 
 metadata {
-	definition (name: "Pool Controller Heater",
-            namespace: "bsileo",
-            author: "Brad Sileo"
+	definition (name: "Pool Controller Heater",  namespace: "bsileo", author: "Brad Sileo" )
         {
 		capability "Temperature Measurement"
 		capability "Refresh"
