@@ -19,9 +19,9 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 
 ## SmartThings - GitHub Integration
 2. Add the GitHub Repository to your  My SmartApps and My Device Handlers:
-  Namespace: bsileo
-  Name: hubitat_poolcontroler
-  Branch: master
+- Namespace: bsileo
+- Name: hubitat_poolcontroler
+- Branch: master
 
 ## Manual Approach on either Hub
 3. Open Apps Code / My SmartApps, select "New App" / "New SmartApp" and then either:
