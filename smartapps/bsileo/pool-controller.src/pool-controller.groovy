@@ -3,6 +3,8 @@
  *
  *  Copyright 2020 Brad Sileo
  *
+ *
+ *  version: 0.9.1
  */
 definition(
 		name: "Pool Controller",

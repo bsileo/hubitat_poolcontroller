@@ -5,6 +5,8 @@
  *
  *  Author: Brad Sileo
  *
+ *
+ *  version: 0.9.1
  */
 metadata {
 	definition (name: "Pool Controller Intellichem",

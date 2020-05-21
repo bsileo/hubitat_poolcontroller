@@ -5,11 +5,13 @@
  *
  *  Author: Brad Sileo
  *
+ *
+ *  version: 0.9.1
  */
 metadata {
 	definition (name: "Pool Controller Chlorinator",
             namespace: "bsileo",
-            author: "Brad Sileo"
+            author: "Brad Sileo" )
         {
 		capability "Refresh"
         capability "Switch"
