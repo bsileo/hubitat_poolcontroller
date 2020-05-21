@@ -7,7 +7,7 @@
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
-      "name": "Pool Controller 6",
+      "name": "Pool Controller",
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/smartapps/bsileo/pool_controller_app.groovy",
       "required": true,
