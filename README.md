@@ -15,7 +15,7 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 
 ## Hubitat - Package Manager
 
-2. Install and Cconfigure the [Hubitat Package Manager](https://github.com/dcmeglio/hubitat-packagemanager) and use it to install this code
+2. Install and configure the [Hubitat Package Manager](https://github.com/dcmeglio/hubitat-packagemanager) and use it to install this code
 
 ## SmartThings - GitHub Integration
 2. Add the GitHub Repository to your  My SmartApps and My Device Handlers:
