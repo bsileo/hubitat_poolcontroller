@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.3"
+ *  Version: "0.9.4"
  *
  */
 
@@ -20,6 +20,11 @@ metadata {
         attribute "Mode", "String"
         attribute "ConfigControllerLastUpdated", "String"
 		attribute "waterSensor1", "Number"
+        attribute "Pool-temperature", "Number"
+        attribute "Pool-heatStatus", "String"
+        attribute "Spa-temperature", "Number"
+        attribute "Spa-heatStatus", "String"
+
 
         // Not working....disable for now
         /*command "updateAllLogging",  [[name:"Update All Logging",
@@ -36,7 +41,7 @@ metadata {
                                       ] ]*/
     }
 
-	preferences {         
+	preferences {
         input (
         	name: "configLoggingLevelIDE",
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
@@ -48,11 +53,11 @@ metadata {
         	    "Info",
         	    "Debug",
         	    "Trace"
-        	],        	
+        	],
         	required: false
         )
     }
-    
+
     if (isST) {
        tiles(scale: 2) {
             childDeviceTile("airTemp", "airTemp", height:1,width:2,childTileName:"temperature")
@@ -60,75 +65,88 @@ metadata {
             standardTile("refresh", "device.refresh", height:1,width:1,inactiveLabel: false) {
                     state "default", label:'Refresh', action:"refresh.refresh",  icon:"st.secondary.refresh-icon"
             }
-			
+
             valueTile("dummy", "airTemp", height:1,width:1,inactiveLabel: false ) {}
 
-            
-            
+
+
             // Bodies
             for (i in 1..2) {
-            	childDeviceTile("setPoint-${i}","body ${i}", height:1,width:1,childTileName:"setPoint")  
-                childDeviceTile("heatMode-${i}","body ${i}", height:1,width:1,childTileName:"heatMode")  
-                childDeviceTile("temperature-${i}","body ${i}", height:1,width:1,childTileName:"temperature")  
-                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:1,childTileName:"dummy")                  
+            	childDeviceTile("setPoint-${i}","body ${i}", height:1,width:1,childTileName:"setPoint")
+                childDeviceTile("heatMode-${i}","body ${i}", height:1,width:1,childTileName:"heatMode")
+                childDeviceTile("temperature-${i}","body ${i}", height:1,width:1,childTileName:"temperature")
+                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:1,childTileName:"dummy")
             }
-            
+
             // Chlorinators
             for (i in 1..2) {
-                    childDeviceTile("saltLevel-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltLevel")                
-                    childDeviceTile("saltRequired-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltRequired")                
+                    childDeviceTile("saltLevel-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltLevel")
+                    childDeviceTile("saltRequired-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltRequired")
                     childDeviceTile("currentOutput-${i}","chlorinator-${i}", height:1,width:1,childTileName:"currentOutput")
                     childDeviceTile("poolSetpoint-${i}","chlorinator-${i}", height:1,width:1,childTileName:"poolSetpoint")
                     childDeviceTile("spaSetpoint-${i}","chlorinator-${i}", height:1,width:1,childTileName:"spaSetpoint")
                     childDeviceTile("superChlorinate-${i}","chlorinator-${i}", height:1,width:1,childTileName:"superChlorinate")
                     childDeviceTile("superChlorHours-${i}","chlorinator-${i}", height:1,width:1,childTileName:"superChlorHours")
-                    childDeviceTile("chlorStatus-${i}","chlorinator-${i}", height:1,width:1,childTileName:"status")                
+                    childDeviceTile("chlorStatus-${i}","chlorinator-${i}", height:1,width:1,childTileName:"status")
             }
-            
+
             for (i in 1..8) {
-                childDeviceTile("Circuit ${i} Switch", "circuit${i}", height:1,width:1,childTileName:"switch")    
+                childDeviceTile("Circuit ${i} Switch", "circuit${i}", height:1,width:1,childTileName:"switch")
             }
-            
+
             for (i in 11..18) {
-                childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")    
+                childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")
             }
-            
+
             // Can change the attribute below to decide what is shown on the "main" page in SmartThings. This must be a real local tile, not a child tile
-            valueTile("main", "waterSensor1", height:1, width:1, inactiveLabel: false ) {
+            valueTile("waterSensor1", "waterSensor1", height:1, width:1, inactiveLabel: false ) {
             	state("default", label:'${currentValue} °F')
            	}
-        	main("main")
-            details (               
+            valueTile("pool-temp", "Pool-temperature", height:1, width:1, inactiveLabel: false ) {
+            	state("default", label:'${currentValue} °F')
+           	}
+            valueTile("pool-heatStatus", "Pool-heatStatus", height:1, width:1, inactiveLabel: false ) {
+            	state("default", label:'${currentValue}')
+           	}
+            valueTile("spa-temp", "Spa-temperature", height:1, width:1, inactiveLabel: false ) {
+            	state("default", label:'${currentValue} °F')
+           	}
+            valueTile("spa-heatStatus", "Spa-heatStatus", height:1, width:1, inactiveLabel: false ) {
+            	state("default", label:'${currentValue}')
+           	}
+
+        	main("pool-temp")
+            details (
                 "airTemp","solarTemp","dummy","refresh",
                 "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
                 "setPoint-2","heatMode-2","temperature-2", "dummy-b-2", "dummy-b-2", "dummy-b-2",
-                
+
                 "saltLevel-1","saltRequired-1","superClorinate-1","superChlorHours-1","currentOutput-1","poolSetpoint-1","spaSetPoint-1","chlorStatus-1",
                 "saltLevel-2","saltRequired-2","superClorinate-2","superChlorHours-2","currentOutput-2","poolSetpoint-2","spaSetPoint-2","chlorStatus-2",
                 "Circuit 2 Switch","Circuit 3 Switch","Circuit 4 Switch","Circuit 5 Switch","Circuit 6 Switch","Circuit 7 Switch",
                 "Circuit 8 Switch",
                 "feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18"
                 )
-		}      
+		}
     }
 }
 
 def configure() {
   getHubPlatform()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'  
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
   refreshConfiguration(true)
 }
 
 def installed() {
 	getHubPlatform()
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'      
-    refreshConfiguration(true)    
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
+    refreshConfiguration(true)
 }
 
 def updated() {
   getHubPlatform()
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'    
-  refreshConfiguration(true)    
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
+  refreshConfiguration(true)
 }
 
 def manageChildren() {
@@ -152,10 +170,10 @@ def manageTempSensors() {
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
         	airTemp = addHESTChildDevice(namespace,deviceType, getChildDNI("airTemp"),
-            	                     [ label: getChildName("Air Temperature"), 
-                                      componentName: "airTemp", 
+            	                     [ label: getChildName("Air Temperature"),
+                                      componentName: "airTemp",
                                       componentLabel: getChildName("Air Temperature"),
-                	                  isComponent:true, 
+                	                  isComponent:true,
                                       completedSetup:true])
 	    logger("Created Air temperature child device","info")
     }
@@ -187,7 +205,7 @@ def manageBodies() {
                         componentLabel: getChildName(value.name),
                         bodyID: value.id.toString(),
                         circuitID: value.circuit.toString(),
-                        isComponent:false                        
+                        isComponent:false
                     ]
                 )
                 logger( "Created new Body called ${value.name}","info")
@@ -454,7 +472,7 @@ def manageLightGroups() {
 
 def getChildName(name) {
     def result = name
-    def prefix = getDataValue("prefixNames") == "true" ? true : false    
+    def prefix = getDataValue("prefixNames") == "true" ? true : false
     if (prefix) {
         result = "${device.displayName} (${name})"
     }
@@ -570,12 +588,25 @@ def parseTemps(response, data=null) {
               case "waterSensor1":
               		sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
             	break
+              case "bodies":
+              	logger("Got bodies","trace")
+              	parseTempsBodies(v)
+                break
             default:
             	break
           }
         }
 	}
 }
+
+def parseTempsBodies(bodies) {
+	logger("Parse Temps Bodies ${bodies}","trace")
+	bodies.each {body ->
+    	sendEvent([[name:"${body.name}-temperature", value: body.temp, descriptionText:"Temperature of Body ${body.name} is ${body.temp}"]])
+        sendEvent([[name:"${body.name}-heatStatus", value: body.heatStatus.name, descriptionText:"Heater of Body ${body.name} is ${body.heatStatus.desc}"]])
+    }
+}
+
 // **********************************************
 // inbound PARSE
 // **********************************************
@@ -672,7 +703,7 @@ def parseFeature(msg) {
     }
 }
 
-def getChild(systemID) {    
+def getChild(systemID) {
     logger("Find child with ${SystemID}","trace")
     return getChildDevices().find { element ->
         return element.id == systemID
@@ -880,7 +911,7 @@ private logger(msg, level = "debug") {
         	    "Warning" : 2,
         	    "Info" : 3,
         	    "Debug" : 4,
-        	    "Trace" : 5]                
+        	    "Trace" : 5]
      def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
      // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
