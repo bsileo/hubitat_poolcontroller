@@ -6,7 +6,7 @@
       "name": "Pool Controller",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/packageManifest.json",
-      "description": "INtegration from Hubitat to a Pentair *Touch Controller using the nodejs-poolController"
+      "description": "Integration from Hubitat to a Pentair *Touch Controller using the nodejs-poolController"
     }
   ]
 }

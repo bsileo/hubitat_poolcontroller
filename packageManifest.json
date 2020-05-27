@@ -2,6 +2,7 @@
   "packageName": "Pool Controller",
   "author": "Brad Sileo",
   "minimumHEVersion": "2.1.9",
+  "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
   "dateReleased": "2020-05-20",
   "apps": [
     {
