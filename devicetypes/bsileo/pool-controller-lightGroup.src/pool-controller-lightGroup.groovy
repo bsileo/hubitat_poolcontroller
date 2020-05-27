@@ -1,15 +1,15 @@
 /**
  *  Copyright 2020 Brad Sileo
  *
- *  Pool Controller Intellibrite
+ *  Pool Controller LightGroup
  *
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.1
+ *  version: 0.9.5
  */
 metadata {
-	definition (name: "Pool Controller Intellibrite", namespace: "bsileo", author: "Brad Sileo" )
+	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
         {
         capability "Switch"
         capability "Configuration"
@@ -18,6 +18,8 @@ metadata {
 
         attribute "lightingTheme", "String"
         attribute "nextLightingTheme", "String"
+        attribute "action", "String"
+		attribute "circuitID", "Number"
 
         if (isHE) {
         	command "saveTheme" , [[ name: "Save The Selected Theme", description: "Save the nextLightingTheme to the Controller" ]]
@@ -28,8 +30,7 @@ metadata {
         	command "nextTheme"
         	command "prevTheme"
         }
-        attribute "action", "String"
-		attribute "circuitID", "Number"
+
 
          if (isHE) {
             command "setLightMode", [[name:"Light mode*",
@@ -132,16 +133,16 @@ metadata {
 
 def installed() {
 	log.debug("Installed Intellibrite Color Light " + device.deviceNetworkId)
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Trace'
     getHubPlatform()
+    refreshConfiguration(true)
     manageData()
-    manageChildren()
 }
 
 def updated() {
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
-  manageData()
   refreshConfiguration(true)
+  manageData()
 }
 
 
@@ -174,7 +175,7 @@ def configurationCallback(response, data=null) {
 def parseConfiguration(response, data=null) {
     if (response.getStatus() == 200) {
         def msg = response.json
-        logger(msg,"trace")
+        logger("parseConfiguration got back ${msg}","trace")
         state.colors = msg
         state.validColors = getValidColors()
         return true
@@ -210,7 +211,7 @@ def manageChildren() {
 
 	def namespace = state.isHE ? 'hubitat' : 'smartthings'
     def deviceType = state.isHE ? "Generic Component Switch" : "Virtual Switch"
-    logger("Starting manageChildren","debug")
+    logger("Starting manageChildren with ${state.validColors}","debug")
 
 	state.validColors.each {
         logger("Process ${it} ${it.val}--${it.name}->${it.desc}","trace")
@@ -268,16 +269,26 @@ def manageChildren() {
 }
 
 
-def parse(msg) {
-    logger("Parse Intellibrite - ${msg}","trace")
-    logger("Implement parsee Intellibrite - ${msg}","error")
+def parse(json) {
+    logger("Parse lightGroup - ${json}","trace")
+    sendEvent([[name: "swimDelay", value: json.swimDelay ? true : false]])
+    sendEvent([[name: "lightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
+    sendEvent([[name: "nextLightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
+    sendEvent([[name: "action", value: json.action.name, descriptionText:"Lighting Action is ${json.action.desc}"]])
+    json.circuits.each {
+        logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
+        if (it.circuit.id.toString() == getDataValue("circuitID").toString()) {
+             sendEvent([[name: "switch", value: it.circuit.isOn ? 'on' : 'off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
+        }
+    }
 }
 
 def refresh() {
     logger("refresh Intellibrite - ${msg}","trace")
     def body = null
     def data = null
-    sendGet("/config/lightGroup/colors", 'parseRefresh', body, data)
+    def id = getDataValue("lightGroupID")
+    sendGet("/config/lightGroup/${id}", 'parseRefresh', body, data)
 }
 
 def parseRefresh (response, data=null) {
@@ -285,16 +296,7 @@ def parseRefresh (response, data=null) {
     if (response.getStatus() == 200) {
         def json = response.getJson()
         logger("Parse Refresh JSON ${json}","debug")
-        sendEvent([[name: "swimDelay", value: json.swimDelay ? true : false]])
-        sendEvent([[name: "lightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
-        sendEvent([[name: "nextLightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
-        sendEvent([[name: "action", value: json.action.name, descriptionText:"Lighting Action is ${json.action.desc}"]])
-        json.circuits.each {
-            logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
-            if (it.circuit.id.toString() == getDataValue("circuitID").toString()) {
-                 sendEvent([[name: "switch", value: it.circuit.isOn ? 'on' : 'off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
-            }
-        }
+        parse(json)
     } else {
         logger("Refresh Failed with code ${response.getStatus()}","error")
     }
@@ -324,10 +326,11 @@ def saveTheme() {
     def newTheme = state.validColors.find { it.name == next }
     logger("Saving Theme ${next} which is matched to ${newTheme}","debug")
     def themeID = newTheme.val
-    def body = [theme: themeID]
+    def circuitID = getDataValue("circuitID")
+    def body = [id: circuitID, theme: themeID]
     def data = body
     logger("Set Intellibrite theme with ${body}","debug")
-    sendPut("/state/intellibrite/setTheme", 'lightModeCallback', body, data)
+    sendPut("/state/circuit/setTheme", 'lightModeCallback', body, data)
 	sendEvent(name: "lightingTheme", value: next, isStateChange: true, displayed: true)
 }
 
@@ -402,9 +405,9 @@ def setLightMode(mode) {
 def setLightModeByVal(modeVal) {
     logger("Going to light mode ${modeVal}","debug")
     def id = getDataValue("circuitID")
-    def body = [theme: modeVal]
+    def body = [id: id, theme: modeVal]
     logger("Set Intellibrite mode with ${params} - ${data}","debug")
-    sendPut("/state/intellibrite/setTheme",'lightModeCallback', body, data)
+    sendPut("/state/circuit/setTheme",'lightModeCallback', body, data)
     sendEvent(name: "switch", value: "on")
 }
 
