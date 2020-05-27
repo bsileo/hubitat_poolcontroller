@@ -33,9 +33,8 @@ metadata {
                                       ] ]*/
     }
 
-	preferences {
-         section("General:") {             
-            input (
+	preferences {         
+        input (
         	name: "configLoggingLevelIDE",
         	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
         	type: "enum",
@@ -46,13 +45,11 @@ metadata {
         	    "Info",
         	    "Debug",
         	    "Trace"
-        	],
-        	defaultValue: "Info",
-            displayDuringSetup: true,
+        	],        	
         	required: false
-            )
-        }
+        )
     }
+    
     if (isST) {
        tiles(scale: 2) {
             childDeviceTile("airTemp", "airTemp", height:1,width:2,childTileName:"temperature")
@@ -93,8 +90,7 @@ metadata {
                 childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")    
             }
             
-            
-            main ("mainSwitch")
+            // Can change the below to decide what is shown on the "main" page in SmartThings            
         	details (               
                 "airTemp","solarTemp","dummy","refresh",
                 "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
@@ -106,8 +102,6 @@ metadata {
                 "Circuit 8 Switch",
                 "feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18"
                 )
-            
-
 		}      
     }
 }
@@ -127,6 +121,7 @@ def installed() {
 def updated() {
   getHubPlatform()
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'    
+  refreshConfiguration(true)    
 }
 
 def manageChildren() {
