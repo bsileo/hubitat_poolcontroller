@@ -49,7 +49,7 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
  "smartThings": {
         "name": "SmartThings",
         "enabled": true,
-        "fileName": "smartThings.json",
+        "fileName": "smartThings-Hubitat.json",
         "globals": {},
         "options": {
           "host": "10.0.0.39",
