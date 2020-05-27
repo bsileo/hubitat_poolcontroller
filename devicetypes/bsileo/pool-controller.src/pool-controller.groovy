@@ -5,6 +5,8 @@
  *
  *  Author: Brad Sileo
  *
+ *  Version: "0.9.3"
+ *
  */
 
 metadata {
@@ -17,6 +19,7 @@ metadata {
         attribute "Freeze", "Boolean"
         attribute "Mode", "String"
         attribute "ConfigControllerLastUpdated", "String"
+		attribute "waterSensor1", "Number"
 
         // Not working....disable for now
         /*command "updateAllLogging",  [[name:"Update All Logging",
@@ -90,8 +93,12 @@ metadata {
                 childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")    
             }
             
-            // Can change the below to decide what is shown on the "main" page in SmartThings            
-        	details (               
+            // Can change the attribute below to decide what is shown on the "main" page in SmartThings. This must be a real local tile, not a child tile
+            valueTile("main", "waterSensor1", height:1, width:1, inactiveLabel: false ) {
+            	state("default", label:'${currentValue} °F')
+           	}
+        	main("main")
+            details (               
                 "airTemp","solarTemp","dummy","refresh",
                 "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
                 "setPoint-2","heatMode-2","temperature-2", "dummy-b-2", "dummy-b-2", "dummy-b-2",
@@ -559,6 +566,9 @@ def parseTemps(response, data=null) {
                 }else {
                 	solar?.setTemperature(v)
                 }
+            	break
+              case "waterSensor1":
+              		sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
             	break
             default:
             	break
