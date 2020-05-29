@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.7
+ *  version: 0.9.8
  */
 metadata {
 	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
@@ -15,6 +15,8 @@ metadata {
         capability "Configuration"
         capability "Refresh"
         attribute "swimDelay", "Boolean"
+        attribute "position", "Number"
+        attribute "color", "String"
 
         attribute "lightingTheme", "String"
         attribute "nextLightingTheme", "String"
@@ -176,8 +178,7 @@ def parseConfiguration(response, data=null) {
     if (response.getStatus() == 200) {
         def msg = response.json
         logger("parseConfiguration got back ${msg}","trace")
-        state.colors = msg
-        state.validColors = getValidColors()
+        state.validColors = getValidColors(msg)
         return true
     } else {
         logger("Configuration Failed with code ${response.getStatus()}","error")
@@ -190,8 +191,7 @@ def manageData() {
 	sendEvent(name: "circuitID", value: cid, isStateChange: true, displayed: false)
 }
 
-def getValidColors() {
- 	def colors = state.colors
+def getValidColors(colors) {
 	def skipModes = ['unknown','save','reset','none','colorset','colorswim','colorsync', 'recall','reset','hold', 'mode']
     def valid = []
 	colors.each {

@@ -22,7 +22,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller.src/pool-controller.groovy",
       "required": true,
-      "version": "0.9.4"
+      "version": "0.9.5"
     },
     {
       "id": "d2c5d427-6e64-4746-9b4c-c4d1dc8348da",
@@ -54,7 +54,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-lightGroup.src/pool-controller-lightGroup.groovy",
       "required": true,
-      "version": "0.9.7"
+      "version": "0.9.8"
     },
     {
       "id": "48c32c82-f3fe-4b04-8bc8-9be7b526c56a",

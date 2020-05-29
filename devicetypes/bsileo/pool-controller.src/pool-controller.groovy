@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.4"
+ *  Version: "0.9.5"
  *
  */
 
@@ -433,40 +433,44 @@ def manageIntellichem() {
 
 def manageLightGroups() {
 	logger( "Create/Update Light Children for this device","debug")
-    def light = state.intellibrite
-    if (light) {
+    def lights = state.lightGroups
+     if (!lights) {
+       logger("No Light Groups found on Controller","info")
+       return
+   }
+   lights.each {light ->
         if (light.isActive) {
             try {
                 def cID = light.circuits ? light.circuits[0].circuit : ''
-                def existing = getChild("intellibrite",light.id)
+                def existing = getChild("lightGroup",light.id)
                 if (!existing) {
-                	def name = "intellibrite${light.id}"
-                    logger("Creating Intellibrite Named ${name}","trace")
-                    def label = getChildName("Intellibrite ${light.id}")
-                    existing = addHESTChildDevice("bsileo","Pool Controller Intellibrite", getChildDNI("intellibrite",light.id),
+                	def name = "lightGroup${light.id}"
+                    logger("Creating Light Group Named ${name}","trace")
+                    def label = getChildName(light.name)
+                    existing = addHESTChildDevice("bsileo","Pool Controller LightGroup", getChildDNI("lightGroup",light.id),
                             [
                                 completedSetup: true,
                                 label:label,
                                 isComponent:false,
                                 componentName: name,
                                 componentLabel: label,
-                                circuitID: cID
+                                circuitID: cID,
+                                lightGroupID: light.id
                              ])
-                    logger( "Created Intellibrite ${name}" ,"info")
+                    logger( "Created Light Group ${name}" ,"info")
                 }
                 else {
                     existing.updateDataValue("circuitID",cID.toString())
-                    logger("Found existing Intellibrite ${light.id} and updated it","info")
+                    existing.updateDataValue("lightGroupID",light.id.toString())
+                    logger("Found existing Light Group ${light.id} and updated it","info")
                 }
             }
             catch(e)
             {
-                logger( "Failed to create Intellibrite ${name}-" + e ,"error")
+                logger( "Failed to create Light Group ${name}-" + e ,"error")
             }
         }
-    } else {
-       logger( "No Intellibrites present","info")
-    }
+   }
 }
 
 
@@ -512,6 +516,9 @@ def parseConfiguration(response, data=null) {
     state.chlorinators = msg.chlorinators
     state.intellibrite = msg.intellibrite
     state.configLastUpdated = msg.lastUpdated
+    state.lightGroups = msg.lightGroups
+    state.remote = msg.remotes
+    state.eggTimers = msg.eggTimers
     logger(state,"trace")
     return true
 }
@@ -648,6 +655,9 @@ def parse(raw) {
                 break
             case "chlorinator":
                 parseDevice(msg.json, 'chlorinator')
+                break
+            case "lightGroup":
+                parseDevice(msg.json, 'lightGroup')
                 break
             default:
                 logger( "No handler for incoming event type '${type}'","warn")
