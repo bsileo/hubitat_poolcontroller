@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.5
+ *  version: 0.9.7
  */
 metadata {
 	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
@@ -271,15 +271,15 @@ def manageChildren() {
 
 def parse(json) {
     logger("Parse lightGroup - ${json}","trace")
-    sendEvent([[name: "swimDelay", value: json.swimDelay ? true : false]])
+    def circuit = json.circuits[0]
+    sendEvent([[name: "swimDelay", value: circuit.swimDelay ? true : false]])
+    sendEvent([[name: "position", value: circuit.position]])
+    sendEvent([[name: "color", value: circuit.color]])
     sendEvent([[name: "lightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
     sendEvent([[name: "nextLightingTheme", value: json.lightingTheme.name, descriptionText:"Lighting Theme is ${json.lightingTheme.desc}"]])
     sendEvent([[name: "action", value: json.action.name, descriptionText:"Lighting Action is ${json.action.desc}"]])
-    json.circuits.each {
-        logger("Circuits ${it.circuit.id} ${getDataValue('circuitID')}","trace")
-        if (it.circuit.id.toString() == getDataValue("circuitID").toString()) {
-             sendEvent([[name: "switch", value: it.circuit.isOn ? 'on' : 'off', descriptionText:"Light switch is ${it.circuit.isOn ? 'On' : 'Off'}"]])
-        }
+    if (circuit.circuit.id.toString() == getDataValue("circuitID").toString()) {
+       sendEvent([[name: "switch", value: circuit.circuit.isOn ? 'on' : 'off', descriptionText:"Light switch is ${circuit.circuit.isOn ? 'On' : 'Off'}"]])
     }
 }
 
@@ -287,16 +287,21 @@ def refresh() {
     logger("refresh Intellibrite - ${msg}","trace")
     def body = null
     def data = null
-    def id = getDataValue("lightGroupID")
-    sendGet("/config/lightGroup/${id}", 'parseRefresh', body, data)
+    sendGet("/state/lightGroups", 'parseRefresh', body, data)
 }
 
 def parseRefresh (response, data=null) {
     logger("Parse Refresh ${response.getStatus()} -- ${response.getStatus()==200}","debug")
+    def id = getDataValue("lightGroupID").toString()
     if (response.getStatus() == 200) {
         def json = response.getJson()
-        logger("Parse Refresh JSON ${json}","debug")
-        parse(json)
+        json.each { lg ->
+            logger("Checking section ${lg.id} - ${lg}","trace")
+            if (lg.id.toString() == id) {
+                logger("Parse Refresh JSON ${json}","debug")
+                parse(lg)
+            }
+        }
     } else {
         logger("Refresh Failed with code ${response.getStatus()}","error")
     }
@@ -342,7 +347,7 @@ def nextTheme() {
 
 def prevTheme() {
 	logger("Prev Theme...","debug")
-    moveTheme(true)
+    moveTheme(false)
 }
 
 def moveTheme(up) {
@@ -353,11 +358,11 @@ def moveTheme(up) {
     	return
     }
     def curIdx = themes.findIndexOf { it.name == curTheme }
-    logger("Looking for nextTheme in ${themes} from ${curTheme} found ${curIdx}","trace")
+    logger("Looking for nextTheme in ${themes} from ${curTheme} found ${curIdx} of ${themes.size()}","trace")
     def newIdx
     if (! curIdx) { curIdx = 0 }
     if (up) {
-    	if (curIdx == themes.length) {
+    	if (curIdx == themes.size() - 1) {
     		newIdx = 0
             } else {
             newIdx = curIdx + 1
@@ -365,7 +370,7 @@ def moveTheme(up) {
     }
     else {
     	if (curIdx == 0) {
-        	newIdx = themes.length
+        	newIdx = themes.size() - 1
         } else {
         	newIdx = curIdx - 1
         }
