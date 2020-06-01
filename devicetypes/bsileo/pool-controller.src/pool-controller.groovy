@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.5"
+ *  Version: "0.9.6"
  *
  */
 
@@ -14,6 +14,7 @@ metadata {
 
         capability "Refresh"
         capability "Configuration"
+        capability "Actuator"
 
         attribute "LastUpdated", "String"
         attribute "Freeze", "Boolean"
@@ -151,7 +152,6 @@ def updated() {
 
 def manageChildren() {
 	logger( "Pool Controller manageChildren starting","debug")
-    // getParent().unsubscribe([])
     manageTempSensors()
     manageBodies()
     managePumps()
