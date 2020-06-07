@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.1
+ *  version: 0.9.2
  */
 metadata {
 	definition (name: "Pool Controller Chlorinator", namespace: "bsileo", author: "Brad Sileo" )
@@ -98,6 +98,7 @@ metadata {
                      ]
 				)
             }
+            
             valueTile("superChlor","superChlor", height:1,width:1) {
             	state("false", label:'SuperChlor Off')
               	state("true", label:'SuperChlor On')
@@ -143,6 +144,7 @@ def parse(msg) {
      sendEvent([name: "spaSetpoint", value: msg.spaSetpoint])
      sendEvent([name: "superChlorHours", value: msg.superChlorHours])
      sendEvent([name: "superChlor", value: msg.superChlor ? true : false])
+     sendEvent([name: "switch", value: msg.currentOutput>0 ? "on" : "off"])
      if (msg.status) {
          sendEvent([name: "status", value: msg.status.name, descriptionText: "Chlorinator status is ${msg.status.desc}"])
      }

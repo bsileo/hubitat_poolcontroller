@@ -30,7 +30,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-body.src/pool-controller-body.groovy",
       "required": true,
-      "version": "0.9.1"
+      "version": "0.9.2"
     },
     {
       "id": "c79e3b5d-52cb-4fec-95d3-6669a3fd2479",
@@ -38,7 +38,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-chlorinator.src/pool-controller-chlorinator.groovy",
       "required": true,
-      "version": "0.9.1"
+      "version": "0.9.2"
     },
     {
       "id": "d5b73bc8-714e-4f9e-ab89-6244b0d9e0e3",
