@@ -54,7 +54,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-lightGroup.src/pool-controller-lightGroup.groovy",
       "required": true,
-      "version": "0.9.8"
+      "version": "0.9.9"
     },
     {
       "id": "48c32c82-f3fe-4b04-8bc8-9be7b526c56a",

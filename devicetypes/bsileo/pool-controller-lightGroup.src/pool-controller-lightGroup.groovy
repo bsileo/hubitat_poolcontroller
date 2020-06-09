@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.8
+ *  version: 0.9.9
  */
 metadata {
 	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
@@ -24,7 +24,7 @@ metadata {
 		attribute "circuitID", "Number"
 
         if (isHE) {
-        	command "saveTheme" , [[ name: "Save The Selected Theme", description: "Save the nextLightingTheme to the Controller" ]]
+        	command "saveTheme"
         	command "nextTheme"
         	command "prevTheme"
         } else {
