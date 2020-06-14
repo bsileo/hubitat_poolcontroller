@@ -52,7 +52,7 @@
       "id": "fc8f04ee-546a-4d7c-8d53-7a1c997e85b9",
       "name": "Pool Controller LightGroup",
       "namespace": "bsileo",
-      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-lightGroup.src/pool-controller-lightGroup.groovy",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-lightgroup.src/pool-controller-lightgroup.groovy",
       "required": true,
       "version": "0.9.9"
     },
