@@ -4,7 +4,7 @@
  *  Copyright 2020 Brad Sileo
  *
  *
- *  version: 0.9.2
+ *  version: 0.9.3
  */
 definition(
 		name: "Pool Controller",
@@ -114,7 +114,7 @@ def deviceDiscovery() {
             paragraph "${ state.isHE ? '<h2>' : ''}Discovered devices:${ state.isHE ? '</h2>' : ''}"
             paragraph describeUnverifiedDevices()
 
-            paragraph "${ state.isHE ? '<h2>' : ''}Verfied devices:${state.isHE ? '</h2>' : ''}"
+            paragraph "${ state.isHE ? '<h2>' : ''}Verifed devices:${state.isHE ? '</h2>' : ''}"
             paragraph describeDevices()
             paragraph "(Verified devices are ready to be selected and installed on the next page)"
             if (state.isHE) { input "refreshDiscovery", "button", title: "Refresh" }
