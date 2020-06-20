@@ -12,7 +12,7 @@
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/smartapps/bsileo/pool-controller.src/pool-controller.groovy",
       "required": true,
       "oauth": false,
-      "version": "0.9.1"
+      "version": "0.9.2"
     }
   ],
   "drivers": [

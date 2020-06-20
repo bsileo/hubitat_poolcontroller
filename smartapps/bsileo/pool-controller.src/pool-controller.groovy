@@ -4,7 +4,7 @@
  *  Copyright 2020 Brad Sileo
  *
  *
- *  version: 0.9.1
+ *  version: 0.9.2
  */
 definition(
 		name: "Pool Controller",
@@ -51,7 +51,7 @@ def appHome() {
     getHubPlatform()
     return dynamicPage(name: "home", title: "NodeJS Pool Controller", refreshInterval: 0, install: false, uninstall: true) {
       section("Setup a new Device", hideable:false, hidden:false) {
-         href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")         
+         href(name: "deviceDiscovery", title: "", description: "Start Discovery for new devices", required: false, page: "deviceDiscovery")
       }
         section("Current Installation") {
             paragraph describeInstall()
@@ -113,12 +113,12 @@ def deviceDiscovery() {
         section("Please wait while we discover your nodejs-poolController. Discovery can take some time...\n\r Click next to proceed once you see the device you want to connect to in the verified section below:", hideable:false, hidden:false) {
             paragraph "${ state.isHE ? '<h2>' : ''}Discovered devices:${ state.isHE ? '</h2>' : ''}"
             paragraph describeUnverifiedDevices()
-            
+
             paragraph "${ state.isHE ? '<h2>' : ''}Verfied devices:${state.isHE ? '</h2>' : ''}"
             paragraph describeDevices()
             paragraph "(Verified devices are ready to be selected and installed on the next page)"
             if (state.isHE) { input "refreshDiscovery", "button", title: "Refresh" }
-            
+
 	    }
         section("Manual poolController Configuration", hideable:true, hidden:false) {
             href(name: "manualPage", title: "", description: "Tap to manually enter a controller (Optional, if discovery does not work above)", required: false, page: "manualPage")
@@ -227,7 +227,7 @@ def poolConfig() {
                 input name:"deviceName", type:"text", title: "Enter the name for your device:", required:true, defaultValue:state.equipment.model
             }
             section("Options") {
-                 input( 
+                 input(
                      name: "prefixNames",
                      title:"Prefix Child Device Names with my name?",
                      type: "bool",
@@ -247,19 +247,19 @@ def poolConfig() {
 	}
 }
 
-private String describeConfig() {    
+private String describeConfig() {
     // log.debug("SORTED ${sorted}")
     def builder = new StringBuilder()
     def bodies = state.bodies.findAll{element -> element.isActive}
-    builder << "${state.isHE ? '<ul class="""device""">' : ''}"    
-    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '<ul class="""device""">' : ''}"
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${bodies.size()} ${bodies.size() == 1 ? 'body' : 'bodies'} of water${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.circuits.findAll{element -> element.isActive}.size()} circuits${state.isHE ? '</li>' : """\r\n"""}"
-    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.features.findAll{element -> element.isActive}.size()} features${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.features.findAll{element -> element.isActive}.size()} features${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.pumps.findAll{element -> element.isActive}.size()} pumps${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.valves.findAll{element -> element.isActive}.size()} valves${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.heaters.findAll{element -> element.isActive}.size()} heaters${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.intellichem.findAll{element -> element.isActive}.size()} intellichems${state.isHE ? '</li>' : """\r\n"""}"
-    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.chlorinators.findAll{element -> element.isActive}.size()} chlorinators${state.isHE ? '</li>' : """\r\n"""}"    
+    builder << "${state.isHE ? '<li class=\"device\">' : ''}Create ${state.chlorinators.findAll{element -> element.isActive}.size()} chlorinators${state.isHE ? '</li>' : """\r\n"""}"
     builder << "${state.isHE ? '</ul>' : ''}"
     builder.toString()
 }
@@ -287,10 +287,10 @@ def getPoolConfig() {
                     ]
                ],
                null,
-               [    
+               [
                 callback : 'parseConfig',
                 type: 'LAN_TYPE_CLIENT'
-               ])            
+               ])
         } else {
             def params = [
                 method: "GET",
@@ -367,8 +367,8 @@ void ssdpDiscover() {
     def searchTarget = "lan discovery " + USN()
     if (state.isST) {
     	log.debug("HA==${physicalgraph.device.HubAction}")
-        hubAction = physicalgraph.device.HubAction.newInstance("${searchTarget}", physicalgraph.device.Protocol.LAN)             
-    } else {         
+        hubAction = physicalgraph.device.HubAction.newInstance("${searchTarget}", physicalgraph.device.Protocol.LAN)
+    } else {
         hubAction = hubitat.device.HubAction.newInstance("${searchTarget}", hubitat.device.Protocol.LAN)
     }
     try {
@@ -376,13 +376,13 @@ void ssdpDiscover() {
         log.debug "SENT: ${hubAction}"
     } catch (e) {
         log.error "Something went wrong: $e"
-    }    
+    }
 }
 
 void ssdpSubscribe() {
 	 if (!atomicState.subscribed) {
         log.trace "Discover Devices: subscribe to location " + USN()
-     	subscribe(location, null, ssdpHandler, [filterEvents: false])        
+     	subscribe(location, null, ssdpHandler, [filterEvents: false])
         atomicState.subscribed = true
      }
 }
@@ -459,10 +459,10 @@ def verifyDevices() {
                     ]
                ],
                null,
-               [    
+               [
                 callback : 'deviceDescriptionHandler',
                 type: 'LAN_TYPE_CLIENT'
-               ])            
+               ])
         } else {
             def params = [
                 method: "GET",
@@ -536,7 +536,7 @@ def selectedDeviceDNI() {
 
 def createOrUpdateDevice(mac,ip,port) {
 	def hub = location.hubs[0]
-    
+
 	//log.error("WARNING Using TEST MAC")
     //mac = mac + "-test"
     def dni = mac.replaceAll("-",'').replaceAll(':','').toUpperCase()
@@ -544,8 +544,8 @@ def createOrUpdateDevice(mac,ip,port) {
     if (d) {
         log.info "The Pool Controller Device with DNI: ${dni} already exists...update config to ${ip}:${port} and Names: ${prefixNames}"
         d.updateDataValue("controllerIP",ip)
-        d.updateDataValue("controllerPort",port)        
-        d.updateDataValue("prefixNames",prefixNames ? 'true' : 'false')        
+        d.updateDataValue("controllerPort",port)
+        d.updateDataValue("prefixNames",prefixNames ? 'true' : 'false')
         d.updated()
    }
    else {
@@ -566,33 +566,33 @@ def createOrUpdateDevice(mac,ip,port) {
 // *********************************************************
 // Device helper methods
 // *********************************************************
-def getPoolController() {	
+def getPoolController() {
 	return getChildDevice(selectedDeviceDNI())
 }
 
 def componentOn(evt) {
 	log.debug("Got ${evt} from ${evt.getDevice()}")
-	log.debug("${evt.device} ${evt.deviceId}")    
+	log.debug("${evt.device} ${evt.deviceId}")
     def poolController = getPoolController()
     def dev = poolController.getChild(evt.deviceId)
     log.debug("Got back ${dev}")
-    
+
     poolController.componentOn(dev)
 }
 
 def componentOff(evt) {
-	log.debug("App componentOff Helper")	
-	log.debug("${evt.device} ${evt.deviceId}")    
+	log.debug("App componentOff Helper")
+	log.debug("${evt.device} ${evt.deviceId}")
     def poolController = getPoolController()
     def dev = poolController.getChild(evt.deviceId)
     log.debug("Got back ${dev}")
-    
+
     poolController.componentOff(dev)
 }
 
 
 // *********************************************************
-// 
+//
 // *********************************************************
 def getPort(value) {
     String port
@@ -632,7 +632,7 @@ private String convertHexToIP(hex) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -641,7 +641,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
      def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":
