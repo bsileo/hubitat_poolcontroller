@@ -531,7 +531,7 @@ def addManualDevice() {
 }
 
 def selectedDeviceDNI() {
-	return selectDevice.replaceAll("-",'').replaceAll(':','').toUpperCase()
+	return selectedDevice.replaceAll("-",'').replaceAll(':','').toUpperCase()
 }
 
 def createOrUpdateDevice(mac,ip,port) {
