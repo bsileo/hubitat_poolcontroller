@@ -4,7 +4,7 @@
  *  Copyright 2020 Brad Sileo
  *
  *
- *  version: 0.9.3
+ *  version: 0.9.4
  */
 definition(
 		name: "Pool Controller",
@@ -531,7 +531,7 @@ def addManualDevice() {
 }
 
 def selectedDeviceDNI() {
-	return controllerMac.replaceAll("-",'').replaceAll(':','').toUpperCase()
+	return selectDevice.replaceAll("-",'').replaceAll(':','').toUpperCase()
 }
 
 def createOrUpdateDevice(mac,ip,port) {
