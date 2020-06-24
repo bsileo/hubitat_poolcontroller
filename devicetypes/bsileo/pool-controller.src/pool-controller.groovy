@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.6"
+ *  Version: "0.9.7"
  *
  */
 
@@ -349,7 +349,8 @@ def manageCircuits() {
                     auxButton.updateDataValue("circuitID",data.id.toString())
                     logger("Found existing Circuit for ${data.name} and updated it","info")
                 }
-                if (state.isSt) {
+                if (state.isST) {
+                	logger("Update subscriptions for ${data.name}","info")
                     getParent().subscribeToCommand(auxButton,"on",componentOn)
                     getParent().subscribeToCommand(auxButton,"off",componentOff)
                 }
@@ -714,7 +715,7 @@ def parseFeature(msg) {
 }
 
 def getChild(systemID) {
-    logger("Find child with ${SystemID}","trace")
+    logger("Find child with ${systemID}","trace")
     return getChildDevices().find { element ->
         return element.id == systemID
       }
