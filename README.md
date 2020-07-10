@@ -43,7 +43,10 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 
 4. Go to Apps, Add User App and create a "Pool Controller" app. The Nodejs-Poolcontroller should be autolocated, or you can manually enter the details. Follow the prompts to complete installation.
 
-5. Enable the Event interface in the poolController. Look for a section like the following and make the appropaite changes to set the Host, Port (39500 for SmartThings, 39501 for Hubitat, and set Enabled to true):
+
+## Setup the Event Interface
+
+Enable the Event interface on the poolController to push updates to the hub. Look for a section like the following in config.json and make the appropaite changes to set the Host, Port (39500 for SmartThings, 39501 for Hubitat, and set Enabled to true):
 
 ```
  "smartThings": {
