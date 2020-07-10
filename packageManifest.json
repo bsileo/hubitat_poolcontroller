@@ -4,7 +4,7 @@
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
   "dateReleased": "2020-06-20",
-  "releaseNotes": "Fixed typo in setup\nFixed problem with child Circuit and Feature control in SmartThings",
+  "releaseNotes": "probblem in Debug level code in several drivers\nChange data types for Chlorinator attributes to Number",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
@@ -39,7 +39,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-chlorinator.src/pool-controller-chlorinator.groovy",
       "required": true,
-      "version": "0.9.2"
+      "version": "0.9.3"
     },
     {
       "id": "d5b73bc8-714e-4f9e-ab89-6244b0d9e0e3",
@@ -47,7 +47,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-heater.src/pool-controller-heater.groovy",
       "required": true,
-      "version": "0.9.1"
+      "version": "0.9.3"
     },
     {
       "id": "fc8f04ee-546a-4d7c-8d53-7a1c997e85b9",
@@ -71,7 +71,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-pump.src/pool-controller-pump.groovy",
       "required": true,
-      "version": "0.9.1"
+      "version": "0.9.2"
     }
   ]
 }

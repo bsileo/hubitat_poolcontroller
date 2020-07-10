@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.2
+ *  version: 0.9.3
  */
 metadata {
 	definition (name: "Pool Controller Chlorinator", namespace: "bsileo", author: "Brad Sileo" )
@@ -14,16 +14,16 @@ metadata {
 		capability "Refresh"
         capability "Switch"
 
-		attribute "saltLevel", "string"
-        attribute "targetOutput", "string"
-		attribute "currentOutput", "string"
+		attribute "saltLevel", "number"
+        attribute "targetOutput", "number"
+		attribute "currentOutput", "number"
         attribute "status", "string"
         attribute "saltRequired", "string"
 
 		attribute "superChlorHours", "number"
         attribute "superChlor", "boolean"
-		attribute "poolSetpoint", "string"
-        attribute "spaSetpoint", "string"
+		attribute "poolSetpoint", "number"
+        attribute "spaSetpoint", "number"
 
          if (isHE) {
             command "setPoolSetpoint", [[name:"Pool Setpoint*",
@@ -78,8 +78,6 @@ metadata {
         	    "Debug",
         	    "Trace"
         	],
-        	defaultValue: "Info",
-            displayDuringSetup: true,
         	required: false
             )
         }
@@ -122,16 +120,17 @@ metadata {
 
 
 def configure() {
-   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
+   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 def installed() {
-   state.loggingLevelIDE = 'Info'
    getHubPlatform()
+   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 def updated() {
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
+  getHubPlatform()
+  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 

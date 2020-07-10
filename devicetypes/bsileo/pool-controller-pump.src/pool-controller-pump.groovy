@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.1
+ *  version: 0.9.2
  */
 metadata {
 	definition (name: "Pool Controller Pump", namespace: "bsileo", author: "Brad Sileo")
@@ -75,17 +75,15 @@ metadata {
         }
         main "switch"
     }
-    
-    
 }
 
 def installed() {
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
     getHubPlatform()
 }
 
 def updated () {
-    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 'Info'
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 
