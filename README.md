@@ -60,4 +60,4 @@ Enable the Event interface on the poolController to push updates to the hub. Loo
         }
 ```
 
-6. Use the newly created devices in Dashboards, Rules, Groups, etc!!
+
