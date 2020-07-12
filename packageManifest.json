@@ -71,7 +71,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-pump.src/pool-controller-pump.groovy",
       "required": true,
-      "version": "0.9.2"
+      "version": "0.9.3"
     }
   ]
 }

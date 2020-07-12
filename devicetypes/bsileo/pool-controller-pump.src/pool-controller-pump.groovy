@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.2
+ *  version: 0.9.3
  */
 metadata {
 	definition (name: "Pool Controller Pump", namespace: "bsileo", author: "Brad Sileo")
@@ -42,9 +42,8 @@ metadata {
             )
         }
     }
-    
     if (isST) {
-        tiles (scale:2) { 
+        tiles (scale:2) {
          	valueTile("switch", "switch", decoration: "flat", width: 2, height: 2) {
                 state "default", label:'${currentValue}'
             }
@@ -104,15 +103,12 @@ def parse(json) {
 
 def refresh() {
     def id = getDataValue("pumpID")
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/pump/${id})"
-    ]
+    def body = null
     logger("Sending refresh with ${params}","debug")
-    asynchttpGet('parseRefresh', params, data)
+    sendGet("/state/pump/${id}", 'parseRefresh', body)
 }
 
-def parseRefresh(response, data) {
+def parseRefresh(response, data=null) {
     logger("parserefresh - ${response} - ${data}","trace")
     def json = response.getJson()
     logger("parseRefresh - ${res}","trace")
@@ -121,31 +117,106 @@ def parseRefresh(response, data) {
 
 def on() {
     def id = getDataValue("circuitID")
-    def data = [id: id, state: 1]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/circuit/setState"
-    ]
+    def body = [id: id, state: 1]
     logger("Turn on pump with ${params} - ${data}","debug")
-    asynchttpPut('stateChangeCallback', params, data)
-    sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
+    sendPut("/state/circuit/setState",'stateChangeCallback', body, data )
 }
 
 def off() {
     def id = getDataValue("circuitID")
-    def data = [id: id, state: 0]
-    def params = [
-        uri: getParent().getControllerURI(),
-        path: "/state/circuit/setState)"
-    ]
+    def body = [id: id, state: 0]
     logger("Turn off pump with ${params}","debug")
-    asynchttpPut('stateChangeCallback', params, data)
+    sendPut('/state/circuit/setState','stateChangeCallback', body, data)
     sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)
 }
 
-def stateChangeCallback(response, data) {
+def stateChangeCallback(response, data=null) {
     logger("State Change Result ${response.getStatus()}","debug")
     logger("State Change Result Data ${response.getData()}","debug")
+}
+
+
+// INTERNAL Methods
+private getHost() {
+    return getParent().getHost()
+}
+
+def getControllerURI(){
+    def host = getHost()
+    return "http://${host}"
+}
+
+private sendGet(message, aCallback=generalCallback, body="", data=null) {
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    logger("Send GET to with ${params} CB=${aCallback}","debug")
+    if (state.isST) {
+    	 def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "GET",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+        asynchttpGet(aCallback, params, data)
+    }
+}
+
+private sendPut(message, aCallback=generalCallback, body="", data=null) {
+    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    if (state.isST) {
+        def hubAction = physicalgraph.device.HubAction.newInstance(
+               [
+                method: "PUT",
+                path: message,
+                body: body,
+                headers: [
+                    HOST: getHost(),
+                    "Accept":"application/json"
+                    ]
+               ],
+               null,
+               [
+                callback : aCallback,
+                type: 'LAN_TYPE_CLIENT'
+               ])
+        sendHubCommand(hubAction)
+    } else {
+     	def params = [
+        	uri: getControllerURI(),
+        	path: message,
+        	requestContentType: "application/json",
+        	contentType: "application/json",
+        	body:body
+    	]
+        asynchttpPut(aCallback, params, data)
+    }
+
+}
+
+def generalCallback(response, data) {
+   logger("Callback(status):${response.getStatus()}","debug")
+}
+
+
+
+def toIntOrNull(it) {
+   return it?.isInteger() ? it.toInteger() : null
 }
 
 //*******************************************************
