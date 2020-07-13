@@ -4,7 +4,7 @@
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
   "dateReleased": "2020-06-20",
-  "releaseNotes": "probblem in Debug level code in several drivers\nChange data types for Chlorinator attributes to Number",
+  "releaseNotes": "Added support for going up to Feature ID 20",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
@@ -23,7 +23,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller.src/pool-controller.groovy",
       "required": true,
-      "version": "0.9.7"
+      "version": "0.9.8"
     },
     {
       "id": "d2c5d427-6e64-4746-9b4c-c4d1dc8348da",

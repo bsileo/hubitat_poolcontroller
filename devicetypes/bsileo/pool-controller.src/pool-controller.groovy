@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.7"
+ *  Version: "0.9.8"
  *
  */
 
@@ -95,7 +95,7 @@ metadata {
                 childDeviceTile("Circuit ${i} Switch", "circuit${i}", height:1,width:1,childTileName:"switch")
             }
 
-            for (i in 11..18) {
+            for (i in 11..20) {
                 childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")
             }
 
@@ -126,7 +126,7 @@ metadata {
                 "saltLevel-2","saltRequired-2","superClorinate-2","superChlorHours-2","currentOutput-2","poolSetpoint-2","spaSetPoint-2","chlorStatus-2",
                 "Circuit 2 Switch","Circuit 3 Switch","Circuit 4 Switch","Circuit 5 Switch","Circuit 6 Switch","Circuit 7 Switch",
                 "Circuit 8 Switch",
-                "feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18"
+                "feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18","feature19","feature20"
                 )
 		}
     }
@@ -225,18 +225,18 @@ def managePumps () {
             def pName = "Pump ${value.id}"
             if (value.name != null) { pName = value.name }
             def pump = getChild("pump",value.id)
+            def cID = value.circuits ? value.circuits[0].circuit : ''
             if (!pump) {
-                def cID = value.circuits ? value.circuits[0].circuit : ''
-                 	pump = addHESTChildDevice("bsileo","Pool Controller Pump", getChildDNI("pump",value.id),
-                                 [completedSetup: true,
-                                    label: getChildName(pName),
-                                    componentLabel:getChildName(pName),
-                                    isComponent:false,
-                                    componentName: pName,
-                                    pumpID: value.id.toString(),
-                                    pumpType: value.type.toString(),
-                                    circuitID: cID.toString()
-                                 ])
+                pump = addHESTChildDevice("bsileo","Pool Controller Pump", getChildDNI("pump",value.id),
+                            [completedSetup: true,
+                                label: getChildName(pName),
+                                componentLabel:getChildName(pName),
+                                isComponent:false,
+                                componentName: pName,
+                                pumpID: value.id.toString(),
+                                pumpType: value.type.toString(),
+                                circuitID: cID.toString()
+                            ])
                 logger( "Created new Pump called ${pName}","info")
             } else {
                 pump.updateDataValue("pumpType",value.type.toString())
