@@ -6,12 +6,12 @@ This code is fully compatible with BOTH SmartThings (classic App) and Hubitat.  
 # License
 Copyright (C) 2017-2020  Brad Sileo / bsileo / brad@sileo.name
 
+## Installation Instructions
+1. Install and configure [Nodejs-Poolcontroller](https://github.com/tagyoureit/nodejs-poolController) (version 6+ is required!)
+          https://github.com/tagyoureit/nodejs-poolController
+
 ## Note
 This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController. If you are using that version, consider upgrading! The last deprecated version of this code for use with 5.3.3 is available [here](https://github.com/bsileo/hubitat_poolcontroller/tree/NJPC-5.3.3). There is no forward migration path from that version to this version as all Apps and Drivers have been renamed and refactored.
-
-## Installation Instructions
-1. Install and configure [Nodejs-Poolcontroller](https://github.com/tagyoureit/nodejs-poolController) (version [NEXT](https://github.com/tagyoureit/nodejs-poolController/tree/next) is required!)
-          https://github.com/tagyoureit/nodejs-poolController
 
 ## Hubitat - Package Manager
 
@@ -46,7 +46,7 @@ This version is *NOT* compatible with the 5.3.3 version of nodejs-poolController
 
 ## Setup the Event Interface
 
-Enable the Event interface on the poolController to push updates to the hub. Look for a section like the following in config.json and make the appropaite changes to set the Host, Port (39500 for SmartThings, 39501 for Hubitat, and set Enabled to true):
+Enable the Event interface on the poolController to push updates to the hub. Look for a section like the following in config.json and make the appropriate changes to set the Host, Port (39500 for SmartThings, 39501 for Hubitat) and set Enabled to true. You can include multiple instances of this section if you want to send events to several hubs - Hubitat and SmartThings can both operate!
 
 ```
  "smartThings": {
