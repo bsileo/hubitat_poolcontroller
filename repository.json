@@ -10,6 +10,15 @@
       "tags": [
         "Pools & Spas"
       ]
+    },
+    {
+      "name": "Rain Machine",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/bsileo/Hubitat_RainMachine/master/packageManifest.json",
+      "description": "Integration from Hubitat to a Rain Machine sprinkler controller - https://www.rainmachine.com/",
+      "tags": [
+        "Irrigation"
+      ]
     }
   ]
 }
