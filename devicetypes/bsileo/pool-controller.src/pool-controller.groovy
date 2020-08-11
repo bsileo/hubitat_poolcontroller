@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.8"
+ *  Version: "0.9.10"
  *
  */
 
@@ -574,37 +574,59 @@ def parseConfigAll(response, data=null) {
 def parseTemps(response, data=null) {
     logger("Parse Temps ${response.getStatus()} -- ${response.getStatus()==200}","debug")
     if (response.getStatus() == 200) {
-        def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
-        def solar = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
-        logger("Process ${response.getJson()} for '${at}' and '${solar}'","trace")
-        String unit = "°${location.temperatureScale}"
-        response.getJson().each {k, v ->
-            logger("Process ${k} ${v}","trace")
-           switch (k) {
-        	 case "air":
-                if (state.isHE) { at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} temperature is ${v}${unit}", unit: unit]]) }
+        parseTempsResult(response.getJson())
+    }
+}
+
+
+def parseTempsResult(json) {
+    def at = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
+    def solar = childDevices.find({it.deviceNetworkId == getChildDNI("solarTemp")})
+    String unit = "°${location.temperatureScale}"
+    if (json.units) {
+        unit = "°" + json.units.name
+    }
+    json.each {k, v ->
+        logger("Process Temps Elements ${k} ${v}","trace")
+        switch (k) {
+            case "air":
+                if (state.isHE) { 
+                    at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} value is ${v}${unit}", unit: unit]]) }
                 else {
-                	at?.setTemperature(v)
+                    at?.setTemperature(v)
                 }
-            	break
-             case "solar":
-                if (state.isHE) { solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} temperature is ${v}${unit}", unit: unit]])
-                }else {
-                	solar?.setTemperature(v)
+                break
+            case "solar":
+                if (state.isHE) { 
+                    solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} value is ${v}${unit}", unit: unit]])
+                } else {
+                    solar?.setTemperature(v)
                 }
-            	break
-              case "waterSensor1":
-              		sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
-            	break
-              case "bodies":
-              	logger("Got bodies","trace")
-              	parseTempsBodies(v)
+                break
+            case "waterSensor1":
+                sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
+                break
+            case "waterSensor2":
+                sendEvent([[name:"waterSensor2", value: v, descriptionText:"Update temperature of Water Sensor 2 to ${v}"]])
+                break
+            case "waterSensor3":
+                sendEvent([[name:"waterSensor3", value: v, descriptionText:"Update temperature of Water Sensor 3 to ${v}"]])
+                break
+            case "waterSensor4":
+                sendEvent([[name:"waterSensor4", value: v, descriptionText:"Update temperature of Water Sensor 4 to ${v}"]])
+                break
+            case "bodies":
+                logger("Got bodies","trace")
+                parseTempsBodies(v)
+                break
+            case "units":
+                // NoOp - handled above
                 break
             default:
-            	break
-          }
+                logger("Unhandled Temperature Element '${k}' : ${v}","debug")
+                break
         }
-	}
+    }
 }
 
 def parseTempsBodies(bodies) {
@@ -619,20 +641,19 @@ def parseTempsBodies(bodies) {
 // inbound PARSE
 // **********************************************
 def parse(raw) {
-    logger( "Parsing ${raw}","trace")
-    def msg = parseLanMessage(raw)
-    logger( "Parsing ${msg}","trace")
-    logger( "Full msg: ${msg}","trace")
+    logger( "Parsing Raw = ${raw}","trace")
+    def msg = parseLanMessage(raw)    
+    logger( "Parse msg: ${msg}","debug")
     logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
     logger("Parse event of type: ${type}","info")
-    logger( "JSON: ${msg.json}","debug")
+    logger( "Parse JSON payload: ${msg.json}","debug")
     Date date = new Date()
     sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}"]])
     if (msg.json) {
         switch(type) {
             case "temps":
-                if (msg.json.bodies) {parseDevices(msg.json.bodies, 'body')}
+                parseTempsResult(msg.json)
                 break
             case "circuit":
                 parseCircuit(msg.json)
