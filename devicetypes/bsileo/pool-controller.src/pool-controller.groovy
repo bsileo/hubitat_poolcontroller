@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.10"
+ *  Version: "0.9.11"
  *
  */
 
@@ -708,7 +708,12 @@ def parseCircuit(msg) {
     logger("Parsing circuit ${child}")
     if (child) {
         def val = msg.isOn ? "on": "off"
-        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+        if (state.isST) {
+        	child.sendEvent(name:"switch",value: val)
+        }
+        else {
+        	child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+        }        
     }
 }
 
@@ -729,10 +734,17 @@ def parseFeature(msg) {
     logger("Parsing feature - ${msg}","debug")
     def child = getChild("feature",msg.id)
     logger("Parsing feature ${child}","trace")
-    if (child) {
-        def val = msg.isOn ? "on": "off"
-        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+    if (child) {        
+        def val = msg.isOn ? "on": "off"        
+        logger("Set val to ${val} for ${child}","debug")
+        if (state.isST) {
+        	child.sendEvent(name:"switch",value: val)
+        }
+        else {
+        	child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
+        }
     }
+    logger("parseFeature Done","debug")
 }
 
 def getChild(systemID) {

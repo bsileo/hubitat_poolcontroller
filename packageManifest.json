@@ -4,7 +4,7 @@
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
   "dateReleased": "2020-08-11",
-  "releaseNotes": "Fixed handling of Temp events from the Controller",
+  "releaseNotes": "Fixed parsing for Child Feature and switches on SmartThings",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
@@ -23,7 +23,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller.src/pool-controller.groovy",
       "required": true,
-      "version": "0.9.10"
+      "version": "0.9.11"
     },
     {
       "id": "d2c5d427-6e64-4746-9b4c-c4d1dc8348da",
