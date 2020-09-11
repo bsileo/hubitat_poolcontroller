@@ -19,6 +19,18 @@
       "tags": [
         "Irrigation"
       ]
+    },
+    {
+      "name": "Shinobi",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/bsileo/hubitat_shinobi/master/packageManifest.json",
+      "description": "Integration from Hubitat to a Shinobi NVR - https://www.shinobi.video/",
+      "tags": [
+        "Integrations",
+        "Monitoring",
+        "Motion Control",
+        "Safety & Security"
+      ]
     }
   ]
 }
