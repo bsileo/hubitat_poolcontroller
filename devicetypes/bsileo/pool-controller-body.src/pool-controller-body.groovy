@@ -122,13 +122,13 @@ def updated() {
 
 def parse(body) {
     logger("Parse body - ${body}","trace")
-    sendEvent([name: "setPoint", value: body.setPoint])
+    String unit = "°${location.temperatureScale}"
+    sendEvent([name: "setPoint", value: body.setPoint, unit: unit])
     if (body.heatMode instanceof java.lang.Integer) {
         sendEvent([name: "heatMode", value: body.heatMode == 1 ? "Heater" : "Off"])
     } else {
         sendEvent([name: "heatMode", value: body.heatMode.desc])
     }
-    String unit = "°${location.temperatureScale}"
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
     if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }
 }
