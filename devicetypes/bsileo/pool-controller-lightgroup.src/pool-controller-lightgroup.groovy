@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.9
+ *  version: 0.9.12
  */
 metadata {
 	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
@@ -64,72 +64,6 @@ metadata {
         	required: false
             )
         }
-    }
-
-    if (isST) {
-    	tiles (scale:2) {
-            standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
-                state "off", label: "Off", action: "on", icon:"st.Lighting.light21", nextState: "on", backgroundColor: "#ffffff"
-                state "on", label: "On", action: "off", icon:"st.Lighting.light21",  nextState: "off", backgroundColor: "#79b821"
-			}
-
-            standardTile("theme", "lightingTheme", width: 2, height: 2, canChangeIcon: true) {
-                state "party", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
-                state "romance", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
-                state "caribbean", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"
-                state "american", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"
-                state "sunset", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#ffff00", nextState:"off"
-                state "royal", label:"", action:"off", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"
-
-                state "blue", label:"Blue", action: "off", icon:"st.Lighting.light21", backgroundColor:"#0000FF", nextState:"off"
-                state "green", label:"Green", action: "off", icon:"st.Lighting.light21", backgroundColor:"#33cc33", nextState:"off"
-                state "red", label: "Red", action: "off", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f", nextState: "off"
-                state "white", label:"White", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
-                state "magenta", label:"Magenta", action:"off", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"
-            }
-
-            multiAttributeTile(name:"themeSelect", type:"generic", width:6, height:4) {
-            	tileAttribute("nextLightingTheme", key: "PRIMARY_CONTROL") {
-                	attributeState "red", label: 'Red', action: "saveTheme", icon:"st.Lighting.light21",backgroundColor: "#bc3a2f"
-                    attributeState "green", label:"Green", action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#33cc33"
-					attributeState "blue", label:"Blue", action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#0000FF"
-                	attributeState "cyan", label:'Cyan', action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#5ef2f2", nextState:"off"
-                	attributeState "white", label:"White", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#ffffff", nextState:"off"
-                    attributeState "magenta", label:"Magenta", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#ff00ff", nextState:"off"
-                    attributeState "lightmagenta", label:"Light Magenta", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#bd7de8", nextState:"off"
-                    attributeState "lavender", label:"Lavender", action:"saveTheme", icon:"st.Lighting.light21", backgroundColor:"#bd7de8", nextState:"off"
-
-                    attributeState "party", label:'Party Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/party.png", backgroundColor:"#4250f4", nextState:"off"
-                	attributeState "romance", label:'Romance Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/romance.png", backgroundColor:"#d28be8", nextState:"off"
-                	attributeState "caribbean", label:'Caribbean Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/caribbean.png", backgroundColor:"#46f2e9", nextState:"off"
-                	attributeState "american", label:'American Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/american.png", backgroundColor:"#d42729", nextState:"off"
-                	attributeState "sunset", label:'Sunset Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/sunset.png", backgroundColor:"#d2d656", nextState:"off"
-                	attributeState "royal", label:'Royal Mode', action:"saveTheme", icon:"https://bsileo.github.io/SmartThings_Pentair/royal.png", backgroundColor:"#9933ff", nextState:"off"
-                    attributeState "default", label:'${currentValue}', action: "saveTheme", icon:"st.Lighting.light21", backgroundColor:"#f0eae9", nextState:"off", defaultState: true
-                }
-                tileAttribute("saveTheme", key: "SECONDARY_CONTROL") {
-        			attributeState "default", label: "Click to Save", icon: 'st.Health & Wellness.health2', defaultState: true
-    			}
-                 tileAttribute("themeMove", key: "VALUE_CONTROL") {
-                    attributeState "VALUE_UP", action: "nextTheme"
-                    attributeState "VALUE_DOWN", action: "prevTheme"
-                }
-            }
-            standardTile("nextTheme", "nextTheme", width:2, height:2, inactiveLabel: false, decoration: "flat") {
-				state "default", action:"nextTheme", icon:"st.Appliances.appliances3"
-			}
-            standardTile("prevTheme", "prevTheme", width:2, height:2, inactiveLabel: false, decoration: "flat") {
-				state "default", action:"prevTheme", icon:"st.Appliances.appliances14"
-			}
-			valueTile("dummy", "temperature", height:1,width:1,inactiveLabel: false ) {}
-
-            standardTile("refresh", "refresh", width:2, height:2, inactiveLabel: false, decoration: "flat") {
-				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-			}
-
-            main("switch")
-            details(["switch", "theme", "refresh",  "themeSelect"])
-		}
     }
 }
 

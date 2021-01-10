@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.3
+ *  version: 0.9.12
  */
 
 metadata {
@@ -41,18 +41,12 @@ metadata {
 }
 
 def installed() {
-    initialize()
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
     getHubPlatform()
 }
 
 def updated() {
-    initialize()
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
-}
-
-def initialize() {
-    state.scale = "F"
 }
 
 def refresh() {
@@ -64,12 +58,12 @@ def parseRefresh (response, data=null) {
     def json = response.getJson()
     logger("parseRefresh - ${json}","debug")
     def bodies = json.bodies
-    def unit = json.units
+    def units = json.units
+    if (units) {
+        state.units = "°" + units.name
+    }
     if (bodies) {
         parseBodies(bodies)
-    }
-    if (units) {
-        state.scale = units.name
     }
 }
 
@@ -77,17 +71,17 @@ def parseBodies(bodies) {
     logger("parseBodies - ${bodies}","debug")
     bodies.each {
         if (it.circuit.toInteger() == getDataValue('bodyID').toInteger()) {
-            sendEvent([name: "heatingSetPoint", value: it.setPoint])
+            sendEvent([name: "heatingSetPoint", value: it.setPoint, unit: state.units])
             sendEvent([name: "heaterMode", value: it.heatMode.name])
-            sendEvent([name: "temperature", value: it.temp, unit: state.scale])
+            sendEvent([name: "temperature", value: it.temp, unit: state.units])
         }
     }
 }
 
 
 def setTemperature(t) {
-    logger("Current temp setting to ${t} ${state.scale}"."debug")
-    sendEvent(name: 'temperature', value: t, unit:state.scale)
+    logger("Current temp setting to ${t} ${state.units}"."debug")
+    sendEvent(name: 'temperature', value: t, unit:state.units)
     log.debug("DONE current temp set to ${t}","trace")
 }
 

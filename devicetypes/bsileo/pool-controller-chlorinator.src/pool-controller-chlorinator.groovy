@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.3
+ *  version: 0.9.12
  */
 metadata {
 	definition (name: "Pool Controller Chlorinator", namespace: "bsileo", author: "Brad Sileo" )
@@ -83,39 +83,6 @@ metadata {
         }
     }
 
-    tiles (scale:1) {
-            valueTile("saltLevel","saltLevel", height:2,width:2) {
-            state("saltLevel", label:'${currentValue} ppm',
-				backgroundColors:[
-							[value: 0, color: "#ed310c"],
-                            [value: 1000, color: "#ed745c"],
-							[value: 2400, color: "#edad0c"],
-							[value: 2800, color: "#c9cf61"],
-							[value: 3000, color: "#75c987"],
-							[value: 3200, color: "#61eb34"]
-                     ]
-				)
-            }
-            
-            valueTile("superChlor","superChlor", height:1,width:1) {
-            	state("false", label:'SuperChlor Off')
-              	state("true", label:'SuperChlor On')
-            }
-            valueTile("superChlorHours","superChlorHour", height:1,width:1) { state("default", label:'${currentValue} hours') }
-            valueTile("currentOutput","currentOutput", height:1,width:1) { state("default", label:'${currentValue}%') }
-            valueTile("poolSetpoint","poolSetpoint", height:1,width:1) { state("default", label:'${currentValue}%') }
-            valueTile("spaSetpoint","spaSetpoint", height:1,width:1) { state("default", label:'${currentValue}%') }
-            valueTile("targetOutput","targetOutput", height:1,width:1) { state("default", label:'${currentValue}%') }
-            valueTile("saltRequired","saltRequired", height:1,width:1) {
-            	state("Yes", label:'Salt Required')
-                state("No", label:'Salt Level OK')
-                }
-            valueTile("status","status", height:1,width:1) { state("default", label:'Status: ${currentValue}') }
-            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
-				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-			}
-
-    }
 }
 
 

@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.2
+ *  version: 0.9.12
  */
 
 metadata {
@@ -61,48 +61,6 @@ metadata {
             )
         }
     }
-
-     tiles (scale:1) {
-            valueTile("temperature","temperature", height:2,width:2) {
-            	state("temperature", label:'${currentValue} °F',
-				backgroundColors:[
-							[value: 32, color: "#ed310c"],
-                            [value: 45, color: "#ed745c"],
-							[value: 55, color: "#edad0c"],
-							[value: 65, color: "#c9cf61"],
-							[value: 75, color: "#75c987"],
-							[value: 85, color: "#61eb34"],
-                            [value: 95, color: "#61eb34"]
-                     ]
-				)
-            }
-            standardTile("switch", "device.switch", width: 1, height: 1, canChangeIcon: true) {
-            	state "off", label: '${currentValue}', action: "switch.on",
-                  icon: "st.switches.switch.off", backgroundColor: "#ffffff"
-            	state "on", label: '${currentValue}', action: "switch.off",
-                  icon: "st.switches.switch.on", backgroundColor: "#00a0dc"
-        }
-            valueTile("setPoint","setPoint", height:1,width:1) { state("default", label:'Set Point: ${currentValue} °F') }
-
-
-            standardTile("heatMode", "heatMode", width:1, height:1, inactiveLabel: false, decoration: "flat") {
-				state "Off",  action:"nextHeaterMode",  nextState: "updating", icon: "st.thermostat.heating-cooling-off", label: "Heater"
-				state "Heater", action:"nextHeaterMode", nextState: "updating", icon: "st.thermostat.heat"
-        		state "Solar Only", label:'${currentValue}', action:"nextHeaterMode",  nextState: "updating", icon: "https://bsileo.github.io/SmartThings_Pentair/solar-only.png"
-            	state "Solar Preferred", label:'${currentValue}', action:"nextHeaterMode",  nextState: "updating", icon: "https://bsileo.github.io/SmartThings_Pentair/solar-preferred.jpg"
-				state "updating", label:"Updating...", icon: "st.Home.home1"
-		}
-            standardTile("refresh", "device.refresh", height:1,width:1,inactiveLabel: false) {
-                state "default", label:'Refresh', action:"refresh.refresh",  icon:"st.secondary.refresh-icon"
-        	}
-            valueTile("dummy", "temperature", height:1,width:1,inactiveLabel: false ) {}
-            
-        main "temperature"
-        details "temperature", "switch", "setPoint", "heatMode", "refresh"
-
-     }
-
-
 }
 
 def configure() {
@@ -119,44 +77,46 @@ def updated() {
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
+def refresh() {
+    logger("Requested a refresh","info")
+    def body = null
+    sendGet("/state/temps", 'parseTemps', body, data)
+    sendGet("/config/options/bodies", 'parseBodies', body, data)
+}
+
+def parseTemps(response, data=null) {
+    String unit = ""
+    logger("parseTemps - ${response.json}","debug")
+    if (response.json.units) {
+        unit = "°" + response.json.units.name
+        state.units = unit
+    }
+}
+
+def parseBodies(response, data=null) {
+    def bodies = response.json.bodies    
+    logger("parseBodies - ${bodies}","debug")
+    if (bodies) {        
+        bodies.each {
+            logger("Current body - ${it} id=${it.id}-","debug")
+            logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
+            if (it.id.toInteger() == getDataValue('bodyID').toInteger()) {
+                parse(it)
+            }
+        }
+    }
+}
 
 def parse(body) {
     logger("Parse body - ${body}","trace")
-    String unit = "°${location.temperatureScale}"
-    sendEvent([name: "setPoint", value: body.setPoint, unit: unit])
+    sendEvent([name: "setPoint", value: body.setPoint, unit:  state.units])
     if (body.heatMode instanceof java.lang.Integer) {
         sendEvent([name: "heatMode", value: body.heatMode == 1 ? "Heater" : "Off"])
     } else {
         sendEvent([name: "heatMode", value: body.heatMode.desc])
-    }
+    }    
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
-    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit: unit]) }
-}
-
-def refresh() {
-    logger("Requested a refresh","info")
-    def body = null
-    sendGet("/config/options/bodies", 'parseRefresh', body, data)
-    sendGet("/state/temps", 'parseRefresh', body, data)
-}
-
-def parseRefresh (response, data=null) {
-    logger("body.parseRefresh - ${response.json}","debug")
-    def bodies = response.json.bodies
-    if (bodies) {
-        parseBodies(bodies)
-    }
-}
-
-def parseBodies(bodies) {
-    logger("parseBodies - ${bodies}","debug")
-    bodies.each {
-    	logger("Current body - ${it} id=${it.id}-","debug")
-        // logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
-        if (it.id.toInteger() == getDataValue('bodyID').toInteger()) {
-            parse(it)
-        }
-    }
+    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit:  state.units]) }
 }
 
 def getHeatMode(intModeValue) {
@@ -282,7 +242,7 @@ def setHeaterSetPoint(setPoint) {
     def body = [id: id, setPoint: setPoint]
     logger("Set Body setPoint with ${params} to ${data}","debug")
     sendPut("/state/body/setPoint", 'setPointCallback', body, data  )
-    sendEvent(name: "setPoint", value: setPoint)
+    sendEvent(name: "setPoint", value: setPoint, , unit:  state.units)
 }
 
 def setPointCallback(response, data=null) {

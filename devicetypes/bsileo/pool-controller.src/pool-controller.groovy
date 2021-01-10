@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.11"
+ *  Version: "0.9.12"
  *
  */
 
@@ -57,78 +57,6 @@ metadata {
         	],
         	required: false
         )
-    }
-
-    if (isST) {
-       tiles(scale: 2) {
-            childDeviceTile("airTemp", "airTemp", height:1,width:2,childTileName:"temperature")
-            childDeviceTile("solarTemp", "solarTemp", height:1,width:2,childTileName:"temperature")
-            standardTile("refresh", "device.refresh", height:1,width:1,inactiveLabel: false) {
-                    state "default", label:'Refresh', action:"refresh.refresh",  icon:"st.secondary.refresh-icon"
-            }
-
-            valueTile("dummy", "airTemp", height:1,width:1,inactiveLabel: false ) {}
-
-
-
-            // Bodies
-            for (i in 1..2) {
-            	childDeviceTile("setPoint-${i}","body ${i}", height:1,width:1,childTileName:"setPoint")
-                childDeviceTile("heatMode-${i}","body ${i}", height:1,width:1,childTileName:"heatMode")
-                childDeviceTile("temperature-${i}","body ${i}", height:1,width:1,childTileName:"temperature")
-                childDeviceTile("dummy-b-${i}","body ${i}", height:1,width:1,childTileName:"dummy")
-            }
-
-            // Chlorinators
-            for (i in 1..2) {
-                    childDeviceTile("saltLevel-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltLevel")
-                    childDeviceTile("saltRequired-${i}","chlorinator-${i}", height:1,width:1,childTileName:"saltRequired")
-                    childDeviceTile("currentOutput-${i}","chlorinator-${i}", height:1,width:1,childTileName:"currentOutput")
-                    childDeviceTile("poolSetpoint-${i}","chlorinator-${i}", height:1,width:1,childTileName:"poolSetpoint")
-                    childDeviceTile("spaSetpoint-${i}","chlorinator-${i}", height:1,width:1,childTileName:"spaSetpoint")
-                    childDeviceTile("superChlorinate-${i}","chlorinator-${i}", height:1,width:1,childTileName:"superChlorinate")
-                    childDeviceTile("superChlorHours-${i}","chlorinator-${i}", height:1,width:1,childTileName:"superChlorHours")
-                    childDeviceTile("chlorStatus-${i}","chlorinator-${i}", height:1,width:1,childTileName:"status")
-            }
-
-            for (i in 1..8) {
-                childDeviceTile("Circuit ${i} Switch", "circuit${i}", height:1,width:1,childTileName:"switch")
-            }
-
-            for (i in 11..20) {
-                childDeviceTile("feature${i}", "feature${i}", height:1,width:1,childTileName:"switch")
-            }
-
-            // Can change the attribute below to decide what is shown on the "main" page in SmartThings. This must be a real local tile, not a child tile
-            valueTile("waterSensor1", "waterSensor1", height:1, width:1, inactiveLabel: false ) {
-            	state("default", label:'${currentValue} °F')
-           	}
-            valueTile("pool-temp", "Pool-temperature", height:1, width:1, inactiveLabel: false ) {
-            	state("default", label:'${currentValue} °F')
-           	}
-            valueTile("pool-heatStatus", "Pool-heatStatus", height:1, width:1, inactiveLabel: false ) {
-            	state("default", label:'${currentValue}')
-           	}
-            valueTile("spa-temp", "Spa-temperature", height:1, width:1, inactiveLabel: false ) {
-            	state("default", label:'${currentValue} °F')
-           	}
-            valueTile("spa-heatStatus", "Spa-heatStatus", height:1, width:1, inactiveLabel: false ) {
-            	state("default", label:'${currentValue}')
-           	}
-
-        	main("pool-temp")
-            details (
-                "airTemp","solarTemp","dummy","refresh",
-                "setPoint-1","heatMode-1","temperature-1", "dummy-b-1", "dummy-b-1", "dummy-b-1",
-                "setPoint-2","heatMode-2","temperature-2", "dummy-b-2", "dummy-b-2", "dummy-b-2",
-
-                "saltLevel-1","saltRequired-1","superClorinate-1","superChlorHours-1","currentOutput-1","poolSetpoint-1","spaSetPoint-1","chlorStatus-1",
-                "saltLevel-2","saltRequired-2","superClorinate-2","superChlorHours-2","currentOutput-2","poolSetpoint-2","spaSetPoint-2","chlorStatus-2",
-                "Circuit 2 Switch","Circuit 3 Switch","Circuit 4 Switch","Circuit 5 Switch","Circuit 6 Switch","Circuit 7 Switch",
-                "Circuit 8 Switch",
-                "feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18","feature19","feature20"
-                )
-		}
     }
 }
 
@@ -586,6 +514,7 @@ def parseTempsResult(json) {
     if (json.units) {
         unit = "°" + json.units.name
     }
+    state.units = unit
     json.each {k, v ->
         logger("Process Temps Elements ${k} ${v}","trace")
         switch (k) {
@@ -604,16 +533,16 @@ def parseTempsResult(json) {
                 }
                 break
             case "waterSensor1":
-                sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
+                sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}", unit: state.units]])
                 break
             case "waterSensor2":
-                sendEvent([[name:"waterSensor2", value: v, descriptionText:"Update temperature of Water Sensor 2 to ${v}"]])
+                sendEvent([[name:"waterSensor2", value: v, descriptionText:"Update temperature of Water Sensor 2 to ${v}", unit: state.units]])
                 break
             case "waterSensor3":
-                sendEvent([[name:"waterSensor3", value: v, descriptionText:"Update temperature of Water Sensor 3 to ${v}"]])
+                sendEvent([[name:"waterSensor3", value: v, descriptionText:"Update temperature of Water Sensor 3 to ${v}", unit: state.units]])
                 break
             case "waterSensor4":
-                sendEvent([[name:"waterSensor4", value: v, descriptionText:"Update temperature of Water Sensor 4 to ${v}"]])
+                sendEvent([[name:"waterSensor4", value: v, descriptionText:"Update temperature of Water Sensor 4 to ${v}", unit: state.units]])
                 break
             case "bodies":
                 logger("Got bodies","trace")
@@ -632,8 +561,8 @@ def parseTempsResult(json) {
 def parseTempsBodies(bodies) {
 	logger("Parse Temps Bodies ${bodies}","trace")
 	bodies.each {body ->
-    	sendEvent([[name:"${body.name}-temperature", value: body.temp, descriptionText:"Temperature of Body ${body.name} is ${body.temp}"]])
-        sendEvent([[name:"${body.name}-heatStatus", value: body.heatStatus.name, descriptionText:"Heater of Body ${body.name} is ${body.heatStatus.desc}"]])
+    	sendEvent([[name:"${body.name}-temperature", value: body.temp, descriptionText:"Temperature of Body ${body.name} is ${body.temp}", unit: state.units]])
+        sendEvent([[name:"${body.name}-heatStatus", value: body.heatStatus.name, descriptionText:"Heater of Body ${body.name} is ${body.heatStatus.desc}", unit: state.units]])
     }
 }
 

@@ -4,7 +4,7 @@
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
   "dateReleased": "2020-08-11",
-  "releaseNotes": "Fixed Units on Pool Body setPoint",
+  "releaseNotes": "Added additional units code throughput.\nStarted removal of unsupported SmartThings code",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
@@ -31,7 +31,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-body.src/pool-controller-body.groovy",
       "required": true,
-      "version": "0.9.5"
+      "version": "0.9.12"
     },
     {
       "id": "c79e3b5d-52cb-4fec-95d3-6669a3fd2479",
@@ -39,7 +39,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-chlorinator.src/pool-controller-chlorinator.groovy",
       "required": true,
-      "version": "0.9.3"
+      "version": "0.9.12"
     },
     {
       "id": "d5b73bc8-714e-4f9e-ab89-6244b0d9e0e3",
@@ -47,7 +47,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-heater.src/pool-controller-heater.groovy",
       "required": true,
-      "version": "0.9.3"
+      "version": "0.9.12"
     },
     {
       "id": "fc8f04ee-546a-4d7c-8d53-7a1c997e85b9",
@@ -55,7 +55,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-lightgroup.src/pool-controller-lightgroup.groovy",
       "required": true,
-      "version": "0.9.9"
+      "version": "0.9.12"
     },
     {
       "id": "48c32c82-f3fe-4b04-8bc8-9be7b526c56a",
