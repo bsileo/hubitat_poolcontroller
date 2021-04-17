@@ -210,7 +210,7 @@ def getChildDNI(name) {
 }
 
 def on() {
-    int id = getDataValue("circuitID")
+    def id = getDataValue("circuitID")
     def body = "{\"id\": ${id}, \"state\": 1}"
     logger("Turn on circuit ${id}","debug")
     sendPut("/state/circuit/setState", 'stateChangeCallback', body, data)
@@ -218,7 +218,7 @@ def on() {
 }
 
 def off() {
-    int id = getDataValue("circuitID")
+    def id = getDataValue("circuitID")
     def body = "{\"id\": ${id}, \"state\": 0}"
     logger("Turn off curcuit ${id}","debug")
     sendPut("/state/circuit/setState", 'stateChangeCallback', body, data  )
