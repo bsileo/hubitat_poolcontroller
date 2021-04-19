@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.13
+ *  version: 0.9.14
  */
 
 metadata {
@@ -178,9 +178,9 @@ def getHeatModeID(mode) {
          case "Solar":
             return 4
             break;
-         default:
-            return 0
-            logger("Unknown Heater mode - ${mode}","error")
+         default:            
+            logger("Unknown Heater mode - '${mode}'","error")
+            return -1
             break;
       }
 }
@@ -193,7 +193,8 @@ def nextHeaterMode() {
 
 	def heatModesStr = device.currentValue("supportedHeaterModes")
     def heatModes = heatModesStr[1..heatModesStr.length() - 2].tokenize(",")
-
+    heatModes = heatModes*.trim()
+    
     int index = heatModes.indexOf(currentMode)
     logger("Current Heater Mode index ${index}", "debug")
     if (index >= heatModes.size() - 1) {
@@ -245,7 +246,7 @@ def heaterOff(spDevice) {
 def setHeaterMode(mode) {
     def id = getDataValue("bodyID")
     def body = [id: id.toInteger(), heatMode: getHeatModeID(mode)]
-    logger("Set Body heatMode with ${body}","debug")
+    logger("Set Body heatMode to ${mode} with ${body}","debug")
     sendPut("/state/body/heatMode", 'setModeCallback', body, data )
     sendEvent(name: "currentHeaterMode", value: mode)
 }
