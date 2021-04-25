@@ -6,39 +6,48 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.13
+ *  version: 0.9.14
  */
 
 metadata {
 	definition (name: "Pool Controller Body", namespace: "bsileo", author: "Brad Sileo") {
 
        capability "Refresh"
-       capability "Configuration"
        capability "Switch"
-       capability "TemperatureMeasurement"
 
        command "heaterOn"
        command "heaterOff"
        command "nextHeaterMode"
+       command "setPointUp"
+       command "setPointDown"
 
+       attribute "currentHeaterMode", "String"
+       attribute "supportedHeaterModes", "String"
+
+       attribute "airTemp", "Number"
+       attribute "waterTemp", "Number"
        attribute "setPoint", "Number"
-       attribute "heatMode", "String"
+
        if (isHE) {
            command "setHeaterMode", [[name:"Heater mode*",
                                       "type":"ENUM",
-                                      "description":"Heater mode to set",
-                                      "constraints":["Off", "Heater", ,"Solar Pref","Solar Only"]]]
+                                      "description":"Heater mode to set (from the supported heater modes list)",
+                                      "constraints":["Off", "Heater", "Solar Pref", "Solar Only"]]]
 
-           command "setHeaterSetPoint", [[name:"Heater SetPoint*",
+           command "setHeaterSetpoint", [[name:"Heater Setpoint*",
                                       "type":"ENUM",
                                       "description":"Set the heater set point",
-                                      "constraints":[50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104]
+                                      "constraints":[50,51,52,53,54,55,56,57,58,59,
+                                                     60,61,62,63,64,65,66,67,68,69,
+                                                     70,71,72,73,74,75,76,77,78,79,
+                                                     80,81,82,82,84,85,86,87,88,89,
+                                                     90,91,92,93,94,95,96,97,98,99,
+                                                     100,101,102,103,104]
                                      ]]
        } else {
            // ST version of commands goes here
 
        }
-
     }
 
 	preferences {
@@ -63,11 +72,6 @@ metadata {
     }
 }
 
-def configure() {
-  logger( "Executing 'configure()'","info")
-  state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
-}
-
 def installed() {
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
     getHubPlatform()
@@ -81,27 +85,33 @@ def refresh() {
     logger("Requested a refresh","info")
     def body = null
     sendGet("/state/temps", 'parseTemps', body, data)
-    sendGet("/config/options/bodies", 'parseBodies', body, data)
 }
 
 def parseTemps(response, data=null) {
-    String unit = ""
-    logger("parseTemps - ${response.json}","debug")
-    if (response.json.units) {
-        unit = "°" + response.json.units.name
-        state.units = unit
+    def temps = response.json
+    logger("parseTemps - ${temps}","debug")
+    if (temps.units) {
+        state.units = "°" + temps.units.name
     }
+
+    if (temps.air) {
+        sendEvent([name: "airTemp", value: temps.air.toInteger(), unit: state.units])
+    }
+
+    parseBodies(response, data)
 }
 
 def parseBodies(response, data=null) {
-    def bodies = response.json.bodies    
+    def bodies = response.json.bodies
     logger("parseBodies - ${bodies}","debug")
-    if (bodies) {        
+    if (bodies) {
         bodies.each {
             logger("Current body - ${it} id=${it.id}-","debug")
             logger("${it.id.toInteger()} ===?== ${getDataValue('bodyID').toInteger()} --- ${it.id.toInteger() == getDataValue('bodyID').toInteger()}","trace")
             if (it.id.toInteger() == getDataValue('bodyID').toInteger()) {
                 parse(it)
+                sendGet("/config/body/${it.id}/heatModes", 'parseHeatModes', body, data)
+                return
             }
         }
     }
@@ -111,17 +121,47 @@ def parse(body) {
     logger("Parse body - ${body}","trace")
     sendEvent([name: "setPoint", value: body.setPoint, unit:  state.units])
     if (body.heatMode instanceof java.lang.Integer) {
-        sendEvent([name: "heatMode", value: body.heatMode == 1 ? "Heater" : "Off"])
+        sendEvent([name: "currentHeaterMode", value: getHeatMode(body.heatMode)])
     } else {
-        sendEvent([name: "heatMode", value: body.heatMode.desc])
-    }    
+        sendEvent([name: "currentHeaterMode", value: body.heatMode.desc])
+    }
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
-    if (body.containsKey('temp')) { sendEvent([name: "temperature", value: body.temp.toInteger(), unit:  state.units]) }
+    if (body.containsKey('temp')) { sendEvent([name: "waterTemp", value: body.temp.toInteger(), unit: state.units]) }
+}
+
+def parseHeatModes(response, data=null) {
+    def heatModes = response.json
+    logger("Parse modes - ${heatModes}","trace")
+    if (heatModes) {
+        def modes = new ArrayList<String>()
+        heatModes.each {
+            modes.add(it.desc)
+        }
+        logger("Heater Modes ${modes}", "debug")
+
+        sendEvent([name: "supportedHeaterModes", value: modes, unit: null])
+    }
 }
 
 def getHeatMode(intModeValue) {
-    if (intModeValue == 1) { return "Heat" }
-    else if (intModeValue == 0) { return "Off" }
+    switch (intModeValue) {
+        case 0:
+           return "Off"
+           break;
+        case 1:
+           return "Heater"
+           break;
+        case 2:
+           return "Solar Pref"
+           break;
+        case 4:
+           return "Solar"
+           break;
+        default:
+           return "Unknown"
+           logger("Unknown Heater mode - ${intModeValue}","error")
+           break;
+    }
 }
 
 def getHeatModeID(mode) {
@@ -138,70 +178,50 @@ def getHeatModeID(mode) {
          case "Solar":
             return 4
             break;
-         default:
-            return 0
-            logger("Unknown Heater mode - ${mode}","error")
+         default:            
+            logger("Unknown Heater mode - '${mode}'","error")
+            return -1
             break;
       }
 }
 
 def nextHeaterMode() {
-	logger("Going to nextMode()","debug")
-    def currentMode = device.currentValue("heatMode")
-	def supportedModes = getModeMap()
-    def nextIndex = 0;
-    logger("${currentMode} moving to next in ${supportedModes}","debug")
-    supportedModes.eachWithIndex {name, index ->
-    	//log.debug("${index}:${name} -->${nextIndex}  ${name} == ${currentMode}")
-    	if (name == currentMode) {
-        	nextIndex = index + 1
-            return
-         }
-    }
-    logger("nextMode id=${nextIndex}  compare to " + supportedModes.size(),"debug")
-    if (nextIndex >= supportedModes.size()) {nextIndex=0 }
-    log.info("Going to nextMode with id =${nextIndex}  -- ${supportedModes[nextIndex]}")
-    setHeaterMode(supportedModes[nextIndex])
-}
+	logger("Going to nextMode()", "debug")
 
-def getModeMap() {
-    def mm = null
-    logger("TODO-fix detecting if Solar is present on Body ModeMap","debug")
-    if (true) {
-    	mm =  ["Off",
-            "Heater",
-        	"Solar Preferred",
-        	"Solar Only"
-     	]
-    }
-    else {
-     mm =
-    	[
-        "OFF",
-        "Heater"
-     	]
-    }
-    return mm
-}
+    def currentMode = device.currentValue("currentHeaterMode")
+    logger("Current Heater Mode index ${currentMode}", "debug")
 
+	def heatModesStr = device.currentValue("supportedHeaterModes")
+    def heatModes = heatModesStr[1..heatModesStr.length() - 2].tokenize(",")
+    heatModes = heatModes*.trim()
+    
+    int index = heatModes.indexOf(currentMode)
+    logger("Current Heater Mode index ${index}", "debug")
+    if (index >= heatModes.size() - 1) {
+        index = -1;
+    }
+    index = index + 1
+    logger("Next Heater Mode index ${index}", "debug")
+
+    setHeaterMode(heatModes.get(index))
+}
 
 def getChildDNI(name) {
 	return getParent().getChildDNI(getDataValue("bodyID") + "-" + name)
 }
 
-
 def on() {
     def id = getDataValue("circuitID")
-    def body = [id: id, state: 1]
-    logger("Turn on body with ${params} - ${body}","debug")
-    sendPut("/state/circuit/setState", 'stateChangeCallback', body, data  )
+    def body = "{\"id\": ${id}, \"state\": 1}"
+    logger("Turn on circuit ${id}","debug")
+    sendPut("/state/circuit/setState", 'stateChangeCallback', body, data)
     sendEvent(name: "switch", value: "on", displayed:false,isStateChange:false)
 }
 
 def off() {
     def id = getDataValue("circuitID")
-    def body = [id: id, state: 0]
-    logger("Turn off body with ${params}","debug")
+    def body = "{\"id\": ${id}, \"state\": 0}"
+    logger("Turn off curcuit ${id}","debug")
     sendPut("/state/circuit/setState", 'stateChangeCallback', body, data  )
     sendEvent(name: "switch", value: "off", displayed:false,isStateChange:false)
 }
@@ -224,33 +244,43 @@ def heaterOff(spDevice) {
 }
 
 def setHeaterMode(mode) {
-   def id = getDataValue("bodyID")
-   def body = [id: id, mode: getHeatModeID(mode)]
-    logger("Set Body heatMode with ${params} and ${body}","debug")
+    def id = getDataValue("bodyID")
+    def body = [id: id.toInteger(), heatMode: getHeatModeID(mode)]
+    logger("Set Body heatMode to ${mode} with ${body}","debug")
     sendPut("/state/body/heatMode", 'setModeCallback', body, data )
-    sendEvent(name: "heatMode", value: mode)
+    sendEvent(name: "currentHeaterMode", value: mode)
 }
 
 def setModeCallback(response, data=null) {
-    logger("Set Mode Response ${response.getStatus()}==${response.getJson()}","trace")
-    logger("Set Mode Data ${data}","trace")
+    logger("Set Mode Response ${response.getStatus()}","trace")
 }
 
-
-def setHeaterSetPoint(setPoint) {
+def setHeaterSetpoint(setPoint) {    
     def id = getDataValue("bodyID")
-    def body = [id: id, setPoint: setPoint]
-    logger("Set Body setPoint with ${params} to ${data}","debug")
-    sendPut("/state/body/setPoint", 'setPointCallback', body, data  )
+    logger("GOT ID ${id}","debug")
+    def body = [id : id.toInteger(), setPoint: setPoint ]
+    logger("Set Body setPoint with ${body}","debug")
+    sendPut("/state/body/setPoint", 'setPointCallback', body, data )
     sendEvent(name: "setPoint", value: setPoint, , unit:  state.units)
 }
 
 def setPointCallback(response, data=null) {
-    logger("State Change Response ${response.getStatus()}","trace")
-    logger("State Change Data ${data}","trace")
+    logger("Set Heating Setpoint Response ${response.getStatus()}","trace")
 }
 
+def setPointUp() {
+    def sp = device.currentValue("setPoint")
+    def newSP = sp.toInteger() + 1
+    logger("SetPoint up from ${sp} to ${newSP}","debug")
+    setHeaterSetpoint(newSP)
+}
 
+def setPointDown() {
+    def sp = device.currentValue("setPoint")
+    def newSP = sp.toInteger() - 1
+    logger("SetPoint down from ${sp} to ${newSP}","debug")
+    setHeaterSetpoint(newSP)
+}
 
 // **********************************
 // INTERNAL Methods
@@ -263,13 +293,12 @@ def addHESTChildDevice(namespace, deviceType, dni, options  ) {
     }
 }
 
-// INTERNAL Methods
 private getHost() {
     return getParent().getHost()
 }
 
 def getControllerURI(){
-    def host = getHost()
+    String host = getHost()
     return "http://${host}"
 }
 
@@ -305,7 +334,7 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
-    logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
+    logger("Send PUT to ${message} with ${body} and ${aCallback}","debug")
     if (state.isST) {
         def hubAction = physicalgraph.device.HubAction.newInstance(
                [
@@ -333,28 +362,23 @@ private sendPut(message, aCallback=generalCallback, body="", data=null) {
     	]
         asynchttpPut(aCallback, params, data)
     }
-
 }
 
 def generalCallback(response, data) {
    logger("Callback(status):${response.getStatus()}","debug")
 }
 
-
-
 def toIntOrNull(it) {
    return it?.isInteger() ? it.toInteger() : null
- }
-
+}
 
 //*******************************************************
 //*  logger()
 //*
 //*  Wrapper function for all logging.
 //*******************************************************
-
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -363,7 +387,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
      def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":
