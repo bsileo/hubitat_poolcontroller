@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.14
+ *  version: 0.9.15
  */
 
 metadata {
@@ -14,6 +14,7 @@ metadata {
 
        capability "Refresh"
        capability "Switch"
+       capability "TemperatureMeasurement"
 
        command "heaterOn"
        command "heaterOff"
@@ -126,7 +127,10 @@ def parse(body) {
         sendEvent([name: "currentHeaterMode", value: body.heatMode.desc])
     }
     if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
-    if (body.containsKey('temp')) { sendEvent([name: "waterTemp", value: body.temp.toInteger(), unit: state.units]) }
+    if (body.containsKey('temp')) {
+        sendEvent([name: "waterTemp", value: body.temp.toInteger(), unit: state.units])
+        sendEvent([name: "temperature", value: body.temp.toInteger(), unit: state.units])
+    }
 }
 
 def parseHeatModes(response, data=null) {
@@ -178,7 +182,7 @@ def getHeatModeID(mode) {
          case "Solar":
             return 4
             break;
-         default:            
+         default:
             logger("Unknown Heater mode - '${mode}'","error")
             return -1
             break;
@@ -194,7 +198,7 @@ def nextHeaterMode() {
 	def heatModesStr = device.currentValue("supportedHeaterModes")
     def heatModes = heatModesStr[1..heatModesStr.length() - 2].tokenize(",")
     heatModes = heatModes*.trim()
-    
+
     int index = heatModes.indexOf(currentMode)
     logger("Current Heater Mode index ${index}", "debug")
     if (index >= heatModes.size() - 1) {
@@ -255,7 +259,7 @@ def setModeCallback(response, data=null) {
     logger("Set Mode Response ${response.getStatus()}","trace")
 }
 
-def setHeaterSetpoint(setPoint) {    
+def setHeaterSetpoint(setPoint) {
     def id = getDataValue("bodyID")
     logger("GOT ID ${id}","debug")
     def body = [id : id.toInteger(), setPoint: setPoint ]
