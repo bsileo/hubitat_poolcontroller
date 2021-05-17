@@ -1,12 +1,12 @@
 /**
- *  Copyright 2020 Brad Sileo
+ *  Copyright 2021 Brad Sileo
  *
  *  Pool Controller - Body
  *
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.15
+ *  version: 1.0.1
  */
 
 metadata {
@@ -15,6 +15,7 @@ metadata {
        capability "Refresh"
        capability "Switch"
        capability "TemperatureMeasurement"
+       capability "ThermostatHeatingSetpoint"
 
        command "heaterOn"
        command "heaterOff"
@@ -232,7 +233,7 @@ def off() {
 
 def stateChangeCallback(response, data) {
     logger("State Change Response ${response.getStatus() == 200 ? 'Success' : 'Failed'}","info")
-    logger("State Change Response ${response.getStatus()}","debug")
+    logger("State Change Response ${response.getJson()}","debug")
 }
 
 // **********************************
@@ -259,17 +260,24 @@ def setModeCallback(response, data=null) {
     logger("Set Mode Response ${response.getStatus()}","trace")
 }
 
-def setHeaterSetpoint(setPoint) {
+def setHeatingSetpoint(setPoint) {
     def id = getDataValue("bodyID")
     logger("GOT ID ${id}","debug")
     def body = [id : id.toInteger(), setPoint: setPoint ]
     logger("Set Body setPoint with ${body}","debug")
     sendPut("/state/body/setPoint", 'setPointCallback', body, data )
-    sendEvent(name: "setPoint", value: setPoint, , unit:  state.units)
+}
+
+def setHeaterSetpoint(temperature) {
+    setHeatingSetpoint(temperature)
 }
 
 def setPointCallback(response, data=null) {
     logger("Set Heating Setpoint Response ${response.getStatus()}","trace")
+    logger("SetPoint Response - ${response.getStatus() == 200 ? 'Success' : 'Failed'}","info")
+    def resp = response.getJson()
+    sendEvent(name: "setPoint", value: resp.setPoint, , unit:  state.units)
+    sendEvent(name: "heatingSetpoint", value: resp.setPoint, , unit:  state.units)
 }
 
 def setPointUp() {
@@ -315,57 +323,19 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        asynchttpGet(aCallback, params, data)
-    }
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${body} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
-        	uri: getControllerURI(),
-        	path: message,
-        	requestContentType: "application/json",
-        	contentType: "application/json",
-        	body:body
-    	]
-        asynchttpPut(aCallback, params, data)
-    }
+   	def params = [
+       	uri: getControllerURI(),
+       	path: message,
+       	requestContentType: "application/json",
+       	contentType: "application/json",
+       	body:body
+   	]
+    asynchttpPut(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
