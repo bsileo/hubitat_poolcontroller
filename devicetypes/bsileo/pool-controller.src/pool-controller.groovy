@@ -1,11 +1,11 @@
 /**
- *  Copyright 2020 Brad Sileo
+ *  Copyright 2021 Brad Sileo
  *
- *  Pool Controller - Main Device
+ *  Pool Controller - Main Device representing the nJSPC
  *
  *  Author: Brad Sileo
  *
- *  Version: "0.9.12"
+ *  Version: "1.11"
  *
  */
 
@@ -26,20 +26,6 @@ metadata {
         attribute "Spa-temperature", "Number"
         attribute "Spa-heatStatus", "String"
 
-
-        // Not working....disable for now
-        /*command "updateAllLogging",  [[name:"Update All Logging",
-                                       type: "ENUM",
-                                       description: "Pick a logging settings for me and all child devices",
-                                       constraints: [
-        	                                "0" : "None",
-        	                                "1" : "Error",
-        	                                "2" : "Warning",
-        	                                "3" : "Info",
-        	                                "4" : "Debug",
-        	                                "5" : "Trace"
-        	                            ]
-                                      ] ]*/
     }
 
 	preferences {
@@ -61,19 +47,16 @@ metadata {
 }
 
 def configure() {
-  getHubPlatform()
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
   refreshConfiguration(true)
 }
 
 def installed() {
-	getHubPlatform()
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
     refreshConfiguration(true)
 }
 
 def updated() {
-  getHubPlatform()
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Debug'
   refreshConfiguration(true)
 }
@@ -93,8 +76,8 @@ def manageChildren() {
 }
 
 def manageTempSensors() {
-    def namespace = state.isHE ? 'hubitat' : 'smartthings/testing'
-    def deviceType = state.isHE ? "Generic Component Temperature Sensor" : "Simulated Temperature Sensor"
+    def namespace = 'hubitat'
+    def deviceType = 'Generic Component Temperature Sensor'
     def airTemp = childDevices.find({it.deviceNetworkId == getChildDNI("airTemp")})
     if (!airTemp) {
         	airTemp = addHESTChildDevice(namespace,deviceType, getChildDNI("airTemp"),
@@ -206,8 +189,8 @@ def manageHeaters() {
 
 def manageFeatureCircuits() {
     def circuits = state.features
-    def namespace = state.isHE ? 'hubitat' : 'smartthings/testing'
-    def deviceType = state.isHE ? "Generic Component Switch" : "Simulated Switch"
+    def namespace = 'hubitat'
+    def deviceType = 'Generic Component Switch'
 
     circuits.each {data ->
         if (data.isActive) {
@@ -234,10 +217,6 @@ def manageFeatureCircuits() {
                     auxButton.updateDataValue("circuitID",data.id.toString())
                     logger("Found existing Feature Switch for ${data.name} and updated it","info")
                 }
-                if(state.isST) {
-                    getParent().subscribeToCommand(auxButton,"on",componentOn)
-                    getParent().subscribeToCommand(auxButton,"off",componentOff)
-                }
             }
             catch(e)
             {
@@ -248,8 +227,8 @@ def manageFeatureCircuits() {
 }
 
 def manageCircuits() {
-  	def namespace = state.isHE ? 'hubitat' : 'smartthings/testing'
-    def deviceType = state.isHE ? "Generic Component Switch" : "Simulated Switch"
+  	def namespace = 'hubitat'
+    def deviceType = "Generic Component Switch"
     def circuits = state.circuits
     circuits.each {data ->
         if (data.friendlyName == "NOT USED") return
@@ -276,11 +255,6 @@ def manageCircuits() {
                     auxButton.updateDataValue("typeID",data.type.toString())
                     auxButton.updateDataValue("circuitID",data.id.toString())
                     logger("Found existing Circuit for ${data.name} and updated it","info")
-                }
-                if (state.isST) {
-                	logger("Update subscriptions for ${data.name}","info")
-                    getParent().subscribeToCommand(auxButton,"on",componentOn)
-                    getParent().subscribeToCommand(auxButton,"off",componentOff)
                 }
             }
             catch(e)
@@ -325,7 +299,7 @@ def manageChlorinators() {
 }
 
 def manageIntellichem() {
-   def chems = state.intellichem
+   def chems = state.chemControllers
    if (!chems) {
        logger("No Intellichem devices found on Controller","info")
        return
@@ -338,10 +312,10 @@ def manageIntellichem() {
                 def existing = getChild("intellichem",data.id)
                 if (!existing) {
                 	log.info "Create Intellichem ${auxLabel} Named=${name}"
-                    existing = addHESTChildDevice("bsileo","Pool Controller Intellichecm", getChildDNI("intellichem",data.id),
+                    existing = addHESTChildDevice("bsileo","Pool Controller Intellichem", getChildDNI("intellichem",data.id),
                             [
                                 completedSetup: true,
-                                label: auxLabel,
+                                label: label,
                                 isComponent:false,
                                 componentName: name,
                                 componentLabel: label
@@ -349,7 +323,7 @@ def manageIntellichem() {
                     logger( "Success - Created ${name}" ,"debug")
                 }
                 else {
-                    logger("Found existing INtellichem ${name} and updated it","info")
+                    logger("Found existing Intellichem ${name} and updated it","info")
                 }
             }
             catch(e)
@@ -443,6 +417,7 @@ def parseConfiguration(response, data=null) {
     state.valves = msg.valves
     state.heaters = msg.heaters
     state.chlorinators = msg.chlorinators
+    state.chemControllers = msg.chemControllers
     state.intellibrite = msg.intellibrite
     state.configLastUpdated = msg.lastUpdated
     state.lightGroups = msg.lightGroups
@@ -514,35 +489,26 @@ def parseTempsResult(json) {
     if (json.units) {
         unit = "°" + json.units.name
     }
-    state.units = unit
     json.each {k, v ->
         logger("Process Temps Elements ${k} ${v}","trace")
         switch (k) {
             case "air":
-                if (state.isHE) { 
-                    at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} value is ${v}${unit}", unit: unit]]) }
-                else {
-                    at?.setTemperature(v)
-                }
+                at?.parse([[name:"temperature", value:v, descriptionText:"${at?.displayName} value is ${v}${unit}", unit: unit]])
                 break
             case "solar":
-                if (state.isHE) { 
-                    solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} value is ${v}${unit}", unit: unit]])
-                } else {
-                    solar?.setTemperature(v)
-                }
+                solar?.parse([[name:"temperature", value:v, descriptionText:"${solar?.displayName} value is ${v}${unit}", unit: unit]])
                 break
             case "waterSensor1":
-                sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}", unit: state.units]])
+                sendEvent([[name:"waterSensor1", value: v, descriptionText:"Update temperature of Water Sensor 1 to ${v}"]])
                 break
             case "waterSensor2":
-                sendEvent([[name:"waterSensor2", value: v, descriptionText:"Update temperature of Water Sensor 2 to ${v}", unit: state.units]])
+                sendEvent([[name:"waterSensor2", value: v, descriptionText:"Update temperature of Water Sensor 2 to ${v}"]])
                 break
             case "waterSensor3":
-                sendEvent([[name:"waterSensor3", value: v, descriptionText:"Update temperature of Water Sensor 3 to ${v}", unit: state.units]])
+                sendEvent([[name:"waterSensor3", value: v, descriptionText:"Update temperature of Water Sensor 3 to ${v}"]])
                 break
             case "waterSensor4":
-                sendEvent([[name:"waterSensor4", value: v, descriptionText:"Update temperature of Water Sensor 4 to ${v}", unit: state.units]])
+                sendEvent([[name:"waterSensor4", value: v, descriptionText:"Update temperature of Water Sensor 4 to ${v}"]])
                 break
             case "bodies":
                 logger("Got bodies","trace")
@@ -561,8 +527,8 @@ def parseTempsResult(json) {
 def parseTempsBodies(bodies) {
 	logger("Parse Temps Bodies ${bodies}","trace")
 	bodies.each {body ->
-    	sendEvent([[name:"${body.name}-temperature", value: body.temp, descriptionText:"Temperature of Body ${body.name} is ${body.temp}", unit: state.units]])
-        sendEvent([[name:"${body.name}-heatStatus", value: body.heatStatus.name, descriptionText:"Heater of Body ${body.name} is ${body.heatStatus.desc}", unit: state.units]])
+    	sendEvent([[name:"${body.name}-temperature", value: body.temp, descriptionText:"Temperature of Body ${body.name} is ${body.temp}"]])
+        sendEvent([[name:"${body.name}-heatStatus", value: body.heatStatus.name, descriptionText:"Heater of Body ${body.name} is ${body.heatStatus.desc}"]])
     }
 }
 
@@ -571,7 +537,7 @@ def parseTempsBodies(bodies) {
 // **********************************************
 def parse(raw) {
     logger( "Parsing Raw = ${raw}","trace")
-    def msg = parseLanMessage(raw)    
+    def msg = parseLanMessage(raw)
     logger( "Parse msg: ${msg}","debug")
     logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
@@ -610,6 +576,9 @@ def parse(raw) {
             case "lightGroup":
                 parseDevice(msg.json, 'lightGroup')
                 break
+            case "chemController":
+                parseDevice(msg.json, 'intellichem')
+                break
             default:
                 logger( "No handler for incoming event type '${type}'","warn")
                 break
@@ -637,12 +606,7 @@ def parseCircuit(msg) {
     logger("Parsing circuit ${child}")
     if (child) {
         def val = msg.isOn ? "on": "off"
-        if (state.isST) {
-        	child.sendEvent(name:"switch",value: val)
-        }
-        else {
-        	child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
-        }        
+        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
     }
 }
 
@@ -663,15 +627,10 @@ def parseFeature(msg) {
     logger("Parsing feature - ${msg}","debug")
     def child = getChild("feature",msg.id)
     logger("Parsing feature ${child}","trace")
-    if (child) {        
-        def val = msg.isOn ? "on": "off"        
+    if (child) {
+        def val = msg.isOn ? "on": "off"
         logger("Set val to ${val} for ${child}","debug")
-        if (state.isST) {
-        	child.sendEvent(name:"switch",value: val)
-        }
-        else {
-        	child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
-        }
+        child.parse([[name:"switch",value: val, descriptionText: "Status changed from controller to ${val}" ]])
     }
     logger("parseFeature Done","debug")
 }
@@ -778,12 +737,7 @@ def setCircuitCallback(response, data=null) {
 // INTERNAL Methods
 // **********************************
 def addHESTChildDevice(namespace, deviceType, dni, options  ) {
-	if (state.isHE) {
-    	return addChildDevice(namespace, deviceType, dni, options)
-	} else {
-    	def hub = location.hubs[0]
-    	return addChildDevice(namespace, deviceType, dni, hub?.id, options)
-    }
+	return addChildDevice(namespace, deviceType, dni, options)
 }
 
 def getHost() {
@@ -806,57 +760,19 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        asynchttpGet(aCallback, params, data)
-    }
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${body} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
+     def params = [
         	uri: getControllerURI(),
         	path: message,
         	requestContentType: "application/json",
         	contentType: "application/json",
         	body:body
     	]
-        asynchttpPut(aCallback, params, data)
-    }
+     asynchttpPut(aCallback, params, data)
 
 }
 
@@ -914,32 +830,3 @@ private logger(msg, level = "debug") {
             break
     }
 }
-
-// **************************************************************************************************************************
-// SmartThings/Hubitat Portability Library (SHPL)
-// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
-//
-// The following 3 calls are safe to use anywhere within a Device Handler or Application
-//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
-//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
-//    Device Handler or Application
-//
-private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
-private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
-private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
-//
-// The following 3 calls are ONLY for use within the Device Handler or Application runtime
-//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
-//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
-//  - "if (state.isST)" is more efficient than "if (isSTHub)"
-//
-private String getHubPlatform() {
-    if (state?.hubPlatform == null) {
-        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
-        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
-        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
-    }
-    return state.hubPlatform
-}
-private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
-private Boolean getIsHEHub() { (state.isHE) }
