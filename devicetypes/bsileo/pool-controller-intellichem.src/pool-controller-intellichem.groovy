@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 1.1
+ *  version: 1.2
  */
 metadata {
 	definition (name: "Pool Controller Intellichem", namespace: "bsileo", author: "Brad Sileo" )
@@ -14,17 +14,28 @@ metadata {
 		capability "Refresh"
         capability "pHMeasurement"
 
-		attribute "ORP", "string"
-        attribute "waterFlow", "string"
-		attribute "salt", "string"
-		attribute "tank1Level", "string"
-		attribute "tank2Level", "string"
-        attribute "status1", "string"
-        attribute "status2", "string"
-        attribute "CYA", "string"
-		attribute "CH", "string"
-        attribute "TA", "string"
-        attribute "SI", "string"
+		attribute "ORPlevel", "number"
+        attribute "ORPsetPoint", "number"
+		attribute "ORPdosingStatusDesc", "string"
+		attribute "ORPdosingStatusName", "string"
+        attribute "ORPtankLevel", "number"
+        attribute "ORPtankCapacity", "number"
+
+        attribute "pHlevel", "number"
+        attribute "pHsetPoint", "number"
+        attribute "pHtemperature", "number"
+        attribute "pHtankLevel", "number"
+        attribute "pHtankCapacity", "number"
+		attribute "pHPdosingStatusDesc", "string"
+		attribute "pHdosingStatusName", "string"
+
+		attribute "lastComm", "string"
+        attribute "body", "string"
+        attribute "status", "string"
+
+        attribute "alkalinity", "number"
+        attribute "calciumHardness", "number"
+        attribute "cyanuricAcid", "number"
 
 		command "refresh"
 
@@ -66,68 +77,100 @@ def refresh() {
     logger("Requested a refresh","info")
 	def body = null
     def data = null
-    logger("Refresh Intellichem with ${params} - ${data}","debug")
-    sendGet("/config/intellichem",'parseRefresh', body, data)
-    sendGet("/state/intellichem",'parseRefresh', body, data)
-}
-
-def parse(section) {
-    section.each { key, v ->
-        switch (key) {
-            case "ph":
-                sendEvent(name: "pH", value: v)
-                break;
-            case "ORP":
-                sendEvent(name: "ORP", value: v)
-                break;
-            case "waterFlow":
-                val = v ? "NO FLOW": "Flow OK"
-                sendEvent(name: "flowAlarm", value: val)
-                break;
-            case "salt":
-                sendEvent(name: "salt", value: v)
-                break;
-            case "tank1Level":
-                sendEvent(name: "tank1Level", value: v)
-                break;
-            case "tank2Level":
-                sendEvent(name: "tank2Level", value: v)
-                break;
-            case "status1":
-                sendEvent(name: "status1", value: v)
-                break;
-            case "status2":
-                sendEvent(name: "status2", value: v)
-                break;
-            // Start of "STATE" items
-            case "CYA":
-                sendEvent(name: "CYA", value: v)
-                break;
-            case "CH":
-                sendEvent(name: "CH", value: v)
-                break;
-            case "TA":
-                sendEvent(name: "TA", value: v)
-                break;
-            case "SI":
-                sendEvent(name: "SI", value: v)
-                break;
-            default:
-                logger( "No handler for incoming Intellichem data element '${key}'","warn")
-                break
-        }
-    }
+    def id = getDataValue('chemID').toInteger()
+    logger("Refresh Intellichem #${id}","debug")
+    // sendGet("/config/intellichem",'parseRefresh', body, data)
+    sendGet("/state/chemController/${id}",'parseRefresh', body, data)
 }
 
 def parseRefresh (response, data=null) {
      if (response.getStatus() == 200) {
         def json = response.getJson()
-        return refresh(json)
+        return parse(json)
      } else {
          logger("Failed to refresh from server - ${response.getStatus()}","error")
          logger("Error data is ${response.getErrorMessage()}","error")
      }
 }
+
+// Process the results from /state/chemController/{id}
+def parse(section) {
+    section.each { key, v ->
+        switch (key) {
+            case "ph":
+                parsePh(v)
+                break;
+            case "ORP":
+                parseORP(v)
+                break;
+            case "alarms":
+                parseAlarms(v)
+                break;
+            case "warnings":
+                parseWarnings(v)
+                break;
+            case "status":
+                sendEvent(name: "status", value: v.name)
+                break;
+            case "lastComm":
+                sendEvent(name: "lastComm", value: v)
+                break;
+            case "alkalinity":
+                sendEvent(name: k, value: v)
+                break;
+            case "calciumHardness":
+                sendEvent(name: k, value: v)
+                break;
+            case "cyanuricAcid":
+                sendEvent(name: k, value: v)
+                break;
+            default:
+                //logger( "No handler for incoming Intellichem data element '${key}'","trace")
+                break
+        }
+    }
+}
+
+def parsePh(section) {
+    sendEvent(name: 'pHTemperature',
+                value: section.probe.temperature,
+                unit: section.probe.tempUnits.name)
+    sendEvent(name: 'pH', value: section.probe.level)
+    sendEvent(name: 'pHTemperature', value: section.probe.temperature)
+    sendEvent(name: 'pHtankLevel', value: section.tenk.level)
+    sendEvent(name: 'pHtankCapacity', value: section.tenk.capacity)
+
+}
+
+def parseORP(section) {
+    sendEvent(name: 'ORPlevel', value: section.probe.level)
+    sendEvent(name: 'ORPsetPoint', value: section.setPoint)
+    sendEvent(name: 'ORPtankLevel', value: section.tank.level)
+    sendEvent(name: 'ORPtankCapacity', value: section.tank.capacity)
+    sendEvent(name: 'ORPdosingStatusName', value: section.dosingStatus.name)
+    sendEvent(name: 'ORPdosingStatusDesc', value: section.dosingStatus.desc)
+}
+
+def parseAlarms(section) {
+    section.each {k,v ->
+        if (v.val == 1) {
+            sendEvent(name: 'alarm',
+            value: k,
+            descriptionText: "Alarm of type ${k} - ${v.desc}")
+        }
+    }
+}
+
+def parseWarnings(section) {
+    section.each {k,v ->
+        if (v.val == 1) {
+            sendEvent(name: 'warning',
+            value: k,
+            descriptionText: "Warning of type ${k} - ${v.desc}")
+        }
+    }
+}
+
 
 // **********************************
 // INTERNAL Methods
