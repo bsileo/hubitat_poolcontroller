@@ -100,7 +100,7 @@ def parse(section) {
             case "ph":
                 parsePh(v)
                 break;
-            case "ORP":
+            case "orp":
                 parseORP(v)
                 break;
             case "alarms":
@@ -136,15 +136,16 @@ def parsePh(section) {
                 value: section.probe.temperature,
                 unit: section.probe.tempUnits.name)
     sendEvent(name: 'pH', value: section.probe.level)
+    sendEvent(name: 'pHsetPoint', value: section.setpoint)
     sendEvent(name: 'pHTemperature', value: section.probe.temperature)
-    sendEvent(name: 'pHtankLevel', value: section.tenk.level)
-    sendEvent(name: 'pHtankCapacity', value: section.tenk.capacity)
+    sendEvent(name: 'pHtankLevel', value: section.tank.level)
+    sendEvent(name: 'pHtankCapacity', value: section.tank.capacity)
 
 }
 
 def parseORP(section) {
     sendEvent(name: 'ORPlevel', value: section.probe.level)
-    sendEvent(name: 'ORPsetPoint', value: section.setPoint)
+    sendEvent(name: 'ORPsetPoint', value: section.setpoint)
     sendEvent(name: 'ORPtankLevel', value: section.tank.level)
     sendEvent(name: 'ORPtankCapacity', value: section.tank.capacity)
     sendEvent(name: 'ORPdosingStatusName', value: section.dosingStatus.name)

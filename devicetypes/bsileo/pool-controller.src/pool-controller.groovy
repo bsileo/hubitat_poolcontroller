@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "1.11"
+ *  Version: "1.12"
  *
  */
 
@@ -317,6 +317,7 @@ def manageIntellichem() {
                                 completedSetup: true,
                                 label: label,
                                 isComponent:false,
+                                chemID: data.id.toString()
                                 componentName: name,
                                 componentLabel: label
                              ])
