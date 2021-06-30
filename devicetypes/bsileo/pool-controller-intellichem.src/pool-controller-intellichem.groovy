@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 1.2
+ *  version: 1.3
  */
 metadata {
 	definition (name: "Pool Controller Intellichem", namespace: "bsileo", author: "Brad Sileo" )
@@ -99,36 +99,37 @@ def parse(section) {
         switch (key) {
             case "ph":
                 parsePh(v)
-                break;
+                break
             case "orp":
                 parseORP(v)
-                break;
+                break
             case "alarms":
                 parseAlarms(v)
-                break;
+                break
             case "warnings":
                 parseWarnings(v)
-                break;
+                break
             case "status":
                 sendEvent(name: "status", value: v.name)
-                break;
+                break
             case "lastComm":
                 sendEvent(name: "lastComm", value: v)
-                break;
+                break
             case "alkalinity":
                 sendEvent(name: k, value: v)
-                break;
+                break
             case "calciumHardness":
                 sendEvent(name: k, value: v)
-                break;
+                break
             case "cyanuricAcid":
                 sendEvent(name: k, value: v)
-                break;
+                break
             default:
                 //logger( "No handler for incoming Intellichem data element '${key}'","trace")
                 break
         }
     }
+    return
 }
 
 def parsePh(section) {
