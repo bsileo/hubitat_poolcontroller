@@ -317,7 +317,7 @@ def manageIntellichem() {
                                 completedSetup: true,
                                 label: label,
                                 isComponent:false,
-                                chemID: data.id.toString()
+                                chemID: data.id.toString(),
                                 componentName: name,
                                 componentLabel: label
                              ])
