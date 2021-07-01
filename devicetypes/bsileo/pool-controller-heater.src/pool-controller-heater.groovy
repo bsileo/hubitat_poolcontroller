@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.12
+ *  version: 1.1
  */
 
 metadata {
@@ -42,7 +42,6 @@ metadata {
 
 def installed() {
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
-    getHubPlatform()
 }
 
 def updated() {
@@ -50,8 +49,8 @@ def updated() {
 }
 
 def refresh() {
-    logger("Requested a refresh","info")         
-    sendGet("/state/temps",'parseRefresh', body, data)    
+    logger("Requested a refresh","info")
+    sendGet("/state/temps",'parseRefresh', body, data)
 }
 
 def parseRefresh (response, data=null) {
@@ -90,11 +89,7 @@ def setTemperature(t) {
 // INTERNAL Methods
 // **********************************
 def addHESTChildDevice(namespace, deviceType, dni, options  ) {
-	if (state.isHE) {
-    	return addChildDevice(namespace, deviceType, dni, options)
-	} else {
-    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
-    }
+  	return addChildDevice(namespace, deviceType, dni, options)
 }
 
 // INTERNAL Methods
@@ -116,65 +111,24 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        asynchttpGet(aCallback, params, data)
-    }
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
-        	uri: getControllerURI(),
-        	path: message,
-        	requestContentType: "application/json",
-        	contentType: "application/json",
-        	body:body
-    	]
-        asynchttpPut(aCallback, params, data)
-    }
-
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpPut(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
    logger("Callback(status):${response.getStatus()}","debug")
 }
-
-
 
 def toIntOrNull(it) {
    return it?.isInteger() ? it.toInteger() : null
@@ -189,7 +143,6 @@ def toIntOrNull(it) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -198,7 +151,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
       def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":
@@ -226,33 +179,3 @@ private logger(msg, level = "debug") {
             break
     }
 }
-
-
-// **************************************************************************************************************************
-// SmartThings/Hubitat Portability Library (SHPL)
-// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
-//
-// The following 3 calls are safe to use anywhere within a Device Handler or Application
-//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
-//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
-//    Device Handler or Application
-//
-private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
-private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
-private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
-//
-// The following 3 calls are ONLY for use within the Device Handler or Application runtime
-//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
-//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
-//  - "if (state.isST)" is more efficient than "if (isSTHub)"
-//
-private String getHubPlatform() {
-    if (state?.hubPlatform == null) {
-        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
-        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
-        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
-    }
-    return state.hubPlatform
-}
-private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
-private Boolean getIsHEHub() { (state.isHE) }

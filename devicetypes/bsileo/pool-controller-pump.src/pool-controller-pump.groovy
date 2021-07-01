@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.3
+ *  version: 1.1
  */
 metadata {
 	definition (name: "Pool Controller Pump", namespace: "bsileo", author: "Brad Sileo")
@@ -42,43 +42,10 @@ metadata {
             )
         }
     }
-    if (isST) {
-        tiles (scale:2) {
-         	valueTile("switch", "switch", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'${currentValue}'
-            }
-            valueTile("power", "device.power", decoration: "flat", width: 2, height: 2) {
-                state "power", label:'${currentValue} Watts'
-            }
-            valueTile("RPM", "RPM", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'${currentValue} RPM'
-            }
-            valueTile("status", "Status", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'Status: ${currentValue}'
-            }
-            valueTile("flow", "flow", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'Flow: ${currentValue}'
-            }
-            valueTile("driveState", "driveState", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'Drive State: ${currentValue}'
-            }
-            valueTile("mode", "mode", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'Mode: ${currentValue}'
-            }
-            valueTile("command", "command", decoration: "flat", width: 2, height: 2) {
-                state "default", label:'Command: ${currentValue}'
-            }
-            standardTile("refresh", "refresh", width:1, height:1, inactiveLabel: false, decoration: "flat") {
-				state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
-			}
-        }
-        main "switch"
-    }
 }
 
 def installed() {
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
-    getHubPlatform()
 }
 
 def updated () {
@@ -155,58 +122,19 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        asynchttpGet(aCallback, params, data)
-    }
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
-        	uri: getControllerURI(),
-        	path: message,
-        	requestContentType: "application/json",
-        	contentType: "application/json",
-        	body:body
-    	]
-        asynchttpPut(aCallback, params, data)
-    }
-
+ 	def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpPut(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
@@ -226,7 +154,7 @@ def toIntOrNull(it) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -235,7 +163,7 @@ private logger(msg, level = "debug") {
         	    "Debug" : 4,
         	    "Trace" : 5]
       def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")  	
+     // log.debug("Lookup is now ${logLevel} for ${state.loggingLevelIDE}")
 
     switch(level) {
         case "error":
@@ -263,32 +191,3 @@ private logger(msg, level = "debug") {
             break
     }
 }
-
-// **************************************************************************************************************************
-// SmartThings/Hubitat Portability Library (SHPL)
-// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
-//
-// The following 3 calls are safe to use anywhere within a Device Handler or Application
-//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
-//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
-//    Device Handler or Application
-//
-private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
-private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
-private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
-//
-// The following 3 calls are ONLY for use within the Device Handler or Application runtime
-//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
-//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
-//  - "if (state.isST)" is more efficient than "if (isSTHub)"
-//
-private String getHubPlatform() {
-    if (state?.hubPlatform == null) {
-        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
-        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
-        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
-    }
-    return state.hubPlatform
-}
-private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
-private Boolean getIsHEHub() { (state.isHE) }

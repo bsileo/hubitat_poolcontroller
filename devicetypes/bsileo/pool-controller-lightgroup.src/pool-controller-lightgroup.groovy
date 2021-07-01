@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.12
+ *  version: 1.1
  */
 metadata {
 	definition (name: "Pool Controller LightGroup", namespace: "bsileo", author: "Brad Sileo" )
@@ -23,26 +23,14 @@ metadata {
         attribute "action", "String"
 		attribute "circuitID", "Number"
 
-        if (isHE) {
-        	command "saveTheme"
-        	command "nextTheme"
-        	command "prevTheme"
-        } else {
-        	command "saveTheme"
-        	command "nextTheme"
-        	command "prevTheme"
-        }
+        command "saveTheme"
+        command "nextTheme"
+        command "prevTheme"
 
-
-         if (isHE) {
-            command "setLightMode", [[name:"Light mode*",
-			    "type":"ENUM","description":"Select an Intellibright mode to set",
-			    "constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
-		      ]]
-         } else {
-              // ST version of commands goes here
-
-         }
+        command "setLightMode", [[name:"Light mode*",
+            "type":"ENUM","description":"Select an Intellibright mode to set",
+            "constraints":["Party", "Romance","Caribbean","American","Sunset","Royal","Blue","Green","Red","White","Magenta"]
+            ]]
 
 	  }
       preferences {
@@ -70,7 +58,6 @@ metadata {
 def installed() {
 	log.debug("Installed Intellibrite Color Light " + device.deviceNetworkId)
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Trace'
-    getHubPlatform()
     refreshConfiguration(true)
     manageData()
 }
@@ -83,7 +70,6 @@ def updated() {
 
 
 def configure() {
-	getHubPlatform()
     refreshConfiguration(true)
 }
 
@@ -143,8 +129,8 @@ def manageChildren() {
     def existing
     def dni
 
-	def namespace = state.isHE ? 'hubitat' : 'smartthings'
-    def deviceType = state.isHE ? "Generic Component Switch" : "Virtual Switch"
+	def namespace = 'hubitat'
+    def deviceType = "Generic Component Switch"
     logger("Starting manageChildren with ${state.validColors}","debug")
 
 	state.validColors.each {
@@ -166,28 +152,15 @@ def manageChildren() {
             try{
                 logger("Creating ${it.desc} light mode button","debug")
                 logger("Namespace ${namespace} type ${deviceType}  ${dni}  with Name= ${it.name} and val=${it.val}","debug")
-                if (state.isST) {
-                    // Add to my parent since ST does not allow nested children.
-                    def cButton = parent.addHESTChildDevice(namespace, deviceType, dni,
-                                                            [ label: displayName,
-                                                             componentName: deviceID,
-                                                             componentLabel: displayName,
-                                                             isComponent:true,
-                                                             completedSetup:true,
-                                                             modeName: it.name,
-                                                             modeVal: it.val.toString()
-                                                            ])
-                } else {
-                    def cButton = addHESTChildDevice(namespace, deviceType, dni,
-                                                     [ label: displayName,
-                                                      componentName: deviceID,
-                                                      componentLabel: displayName,
-                                                      isComponent:true,
-                                                      completedSetup:true,
-                                                      modeName: it.name,
-                                                      modeVal: it.val.toString()
-                                                     ])
-                }
+                def cButton = addHESTChildDevice(namespace, deviceType, dni,
+                                            [ label: displayName,
+                                            componentName: deviceID,
+                                            componentLabel: displayName,
+                                            isComponent:true,
+                                            completedSetup:true,
+                                            modeName: it.name,
+                                            modeVal: it.val.toString()
+                                            ])
                 logger( "Created Button for ${it.name} ","info")
             }
             catch(e)
@@ -360,11 +333,7 @@ def lightModeCallback(response, data=null) {
 // INTERNAL Methods
 // **********************************
 def addHESTChildDevice(namespace, deviceType, dni, options  ) {
-	if (state.isHE) {
-    	return addChildDevice(namespace, deviceType, dni, options)
-	} else {
-    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
-    }
+   	return addChildDevice(namespace, deviceType, dni, options)
 }
 
 // INTERNAL Methods
@@ -379,65 +348,26 @@ def getControllerURI(){
 
 private sendGet(message, aCallback=generalCallback, body="", data=null) {
     logger("Send GET to with ${body} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        def params = [
-            uri: getControllerURI(),
-            path: message,
-            requestContentType: "application/json",
-            contentType: "application/json",
-            body:body
-        ]
-        asynchttpGet(aCallback, params, data)
-    }
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${body} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
-        	uri: getControllerURI(),
-        	path: message,
-        	requestContentType: "application/json",
-        	contentType: "application/json",
-        	body:body
-    	]
-        asynchttpPut(aCallback, params, data)
-    }
-
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpPut(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
@@ -496,32 +426,3 @@ private logger(msg, level = "debug") {
             break
     }
 }
-
-// **************************************************************************************************************************
-// SmartThings/Hubitat Portability Library (SHPL)
-// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
-//
-// The following 3 calls are safe to use anywhere within a Device Handler or Application
-//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
-//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
-//    Device Handler or Application
-//
-private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
-private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
-private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
-//
-// The following 3 calls are ONLY for use within the Device Handler or Application runtime
-//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
-//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
-//  - "if (state.isST)" is more efficient than "if (isSTHub)"
-//
-private String getHubPlatform() {
-    if (state?.hubPlatform == null) {
-        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
-        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
-        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
-    }
-    return state.hubPlatform
-}
-private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
-private Boolean getIsHEHub() { (state.isHE) }

@@ -1,12 +1,12 @@
 /**
- *  Copyright 2020 Brad Sileo
+ *  Copyright 2021 Brad Sileo
  *
  *  Pool Controller Chlorinator
  *
  *  Author: Brad Sileo
  *
  *
- *  version: 0.9.12
+ *  version: 1.1
  */
 metadata {
 	definition (name: "Pool Controller Chlorinator", namespace: "bsileo", author: "Brad Sileo" )
@@ -25,45 +25,39 @@ metadata {
 		attribute "poolSetpoint", "number"
         attribute "spaSetpoint", "number"
 
-         if (isHE) {
-            command "setPoolSetpoint", [[name:"Pool Setpoint*",
-                                      "type":"ENUM",
-                                      "description":"Set the output level for the Pool",
-                                      "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
-                                                     21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
-                                                     40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
-                                                     60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,
-                                                     80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
-                                                     100]
-                                     ]]
-            command "setSpaSetpoint", [[name:"Spa Setpoint*",
-                                      "type":"ENUM",
-                                      "description":"Set the output level for the Spa",
-                                      "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
-                                                     21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
-                                                     40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
-                                                     60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,
-                                                     80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
-                                                     100]
-                                     ]]
+        command "setPoolSetpoint", [[name:"Pool Setpoint*",
+                                    "type":"ENUM",
+                                    "description":"Set the output level for the Pool",
+                                    "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+                                                    21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
+                                                    40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
+                                                    60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,
+                                                    80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
+                                                    100]
+                                    ]]
+        command "setSpaSetpoint", [[name:"Spa Setpoint*",
+                                    "type":"ENUM",
+                                    "description":"Set the output level for the Spa",
+                                    "constraints":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+                                                    21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
+                                                    40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
+                                                    60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,
+                                                    80,81,82,82,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,
+                                                    100]
+                                    ]]
 
-            command "setSuperChlorHours", [[name:"Super Chlor Status*",
-                                        "type":"ENUM",
-                                        "description":"Turn on/off Super Chlorinate",
-                                        "constraints":["On","Off"]
-                                        ],
-                                        [name:"Super Chlor Hours*",
-                                      "type":"ENUM",
-                                      "description":"Set the number of hours for Super Chlorinate",
-                                      "constraints":[0,1,2,3,4,5,6,7,8]
-                                     ]]
-         } else {
-             command "setPoolSetpoint", ["number"]
-             command "setSpaSetpoint", ["number"]
-             command "setSuperChlorHours", ["boolean", "number"]
-         }
-
+        command "setSuperChlorHours", [[name:"Super Chlor Status*",
+                                    "type":"ENUM",
+                                    "description":"Turn on/off Super Chlorinate",
+                                    "constraints":["On","Off"]
+                                    ],
+                                    [name:"Super Chlor Hours*",
+                                    "type":"ENUM",
+                                    "description":"Set the number of hours for Super Chlorinate",
+                                    "constraints":[0,1,2,3,4,5,6,7,8]
+                                    ]]
     }
+    
     preferences {
          section("General:") {
             input (
@@ -82,7 +76,6 @@ metadata {
             )
         }
     }
-
 }
 
 
@@ -91,12 +84,10 @@ def configure() {
 }
 
 def installed() {
-   getHubPlatform()
    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
 def updated() {
-  getHubPlatform()
   state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE : 'Info'
 }
 
@@ -213,11 +204,7 @@ def updateCallback(response, data=null) {
 // INTERNAL Methods
 // **********************************
 def addHESTChildDevice(namespace, deviceType, dni, options  ) {
-	if (state.isHE) {
-    	return addChildDevice(namespace, deviceType, dni, options)
-	} else {
-    	return addChildDevice(namespace, deviceType, dni, location.hubs[0]?.id, options)
-    }
+   	return addChildDevice(namespace, deviceType, dni, options)
 }
 
 // INTERNAL Methods
@@ -239,58 +226,19 @@ private sendGet(message, aCallback=generalCallback, body="", data=null) {
         body:body
     ]
     logger("Send GET to with ${params} CB=${aCallback}","debug")
-    if (state.isST) {
-    	 def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "GET",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-        asynchttpGet(aCallback, params, data)
-    }
+    asynchttpGet(aCallback, params, data)
 }
 
 private sendPut(message, aCallback=generalCallback, body="", data=null) {
     logger("Send PUT to ${message} with ${params} and ${aCallback}","debug")
-    if (state.isST) {
-        def hubAction = physicalgraph.device.HubAction.newInstance(
-               [
-                method: "PUT",
-                path: message,
-                body: body,
-                headers: [
-                    HOST: getHost(),
-                    "Accept":"application/json"
-                    ]
-               ],
-               null,
-               [
-                callback : aCallback,
-                type: 'LAN_TYPE_CLIENT'
-               ])
-        sendHubCommand(hubAction)
-    } else {
-     	def params = [
-        	uri: getControllerURI(),
-        	path: message,
-        	requestContentType: "application/json",
-        	contentType: "application/json",
-        	body:body
-    	]
-        asynchttpPut(aCallback, params, data)
-    }
-
+    def params = [
+        uri: getControllerURI(),
+        path: message,
+        requestContentType: "application/json",
+        contentType: "application/json",
+        body:body
+    ]
+    asynchttpPut(aCallback, params, data)
 }
 
 def generalCallback(response, data) {
@@ -311,7 +259,7 @@ def toIntOrNull(it) {
 //*******************************************************
 
 private logger(msg, level = "debug") {
-	    
+
     def lookup = [
         	    "None" : 0,
         	    "Error" : 1,
@@ -348,32 +296,3 @@ private logger(msg, level = "debug") {
             break
     }
 }
-
-// **************************************************************************************************************************
-// SmartThings/Hubitat Portability Library (SHPL)
-// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
-//
-// The following 3 calls are safe to use anywhere within a Device Handler or Application
-//  - these can be called (e.g., if (getPlatform() == 'SmartThings'), or referenced (i.e., if (platform == 'Hubitat') )
-//  - performance of the non-native platform is horrendous, so it is best to use these only in the metadata{} section of a
-//    Device Handler or Application
-//
-private String  getPlatform() { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
-private Boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
-private Boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
-//
-// The following 3 calls are ONLY for use within the Device Handler or Application runtime
-//  - they will throw an error at compile time if used within metadata, usually complaining that "state" is not defined
-//  - getHubPlatform() ***MUST*** be called from the installed() method, then use "state.hubPlatform" elsewhere
-//  - "if (state.isST)" is more efficient than "if (isSTHub)"
-//
-private String getHubPlatform() {
-    if (state?.hubPlatform == null) {
-        state.hubPlatform = getPlatform()						// if (hubPlatform == 'Hubitat') ... or if (state.hubPlatform == 'SmartThings')...
-        state.isST = state.hubPlatform.startsWith('S')			// if (state.isST) ...
-        state.isHE = state.hubPlatform.startsWith('H')			// if (state.isHE) ...
-    }
-    return state.hubPlatform
-}
-private Boolean getIsSTHub() { (state.isST) }					// if (isSTHub) ...
-private Boolean getIsHEHub() { (state.isHE) }
