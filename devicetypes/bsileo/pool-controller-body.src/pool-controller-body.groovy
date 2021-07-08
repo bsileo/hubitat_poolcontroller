@@ -262,7 +262,7 @@ def setModeCallback(response, data=null) {
 def setHeatingSetpoint(setPoint) {
     def id = getDataValue("bodyID")
     logger("GOT ID ${id}","debug")
-    def body = [id : id.toInteger(), heatingSetPoint: setPoint ]
+    def body = [id : id.toInteger(), heatSetpoint: setPoint.toInteger() ]
     logger("Set Body setPoint with ${body}","debug")
     sendPut("/state/body/setPoint", 'setPointCallback', body, data )
 }
