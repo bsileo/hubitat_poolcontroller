@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 1.1
+ *  version: 1.2
  */
 
 metadata {
@@ -262,7 +262,7 @@ def setModeCallback(response, data=null) {
 def setHeatingSetpoint(setPoint) {
     def id = getDataValue("bodyID")
     logger("GOT ID ${id}","debug")
-    def body = [id : id.toInteger(), setPoint: setPoint ]
+    def body = [id : id.toInteger(), heatingSetPoint: setPoint ]
     logger("Set Body setPoint with ${body}","debug")
     sendPut("/state/body/setPoint", 'setPointCallback', body, data )
 }
@@ -275,6 +275,7 @@ def setPointCallback(response, data=null) {
     logger("Set Heating Setpoint Response ${response.getStatus()}","trace")
     logger("SetPoint Response - ${response.getStatus() == 200 ? 'Success' : 'Failed'}","info")
     def resp = response.getJson()
+    logger("Resp=${resp}","debug")
     sendEvent(name: "setPoint", value: resp.setPoint, , unit:  state.units)
     sendEvent(name: "heatingSetpoint", value: resp.setPoint, , unit:  state.units)
 }
