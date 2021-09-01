@@ -521,11 +521,10 @@ def parse(raw) {
     //logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
     //logger("Parse event of type: ${type}","debug")
-    //logger( "Parse JSON payload: ${msg.json}","debug")
-    Date date = new Date()
-    def lastUpdate = currentValue('lastUpdated')
-    def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
-    if (logLevel >= 4) {
+    //logger( "Parse JSON payload: ${msg.json}","debug")            
+    def logLevel = state.loggingLevelIDE    
+    if (logLevel == 'Debug' || logLevel =='Trace') {
+      Date date = new Date()
       sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}", 
                 descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}",
                isStateChange: false
