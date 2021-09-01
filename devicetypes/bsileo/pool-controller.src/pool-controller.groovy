@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "1.12"
+ *  Version: "1.14"
  *
  */
 
@@ -428,29 +428,6 @@ def parseConfiguration(response, data=null) {
     return true
 }
 
-def updateAllLogging(level) {
-    levels = ["None" : "0",
-        	   "Error" : "1",
-        	   "Warning" : "2",
-        	   "Info" : "3",
-        	   "Debug" : "4",
-        	   "Trace": "5"]
-    levelID = levels[level]
-    logger("LEVEL=${level}->${levelID}","error")
-    device.updateSetting("configLoggingLevelIDE", level)
-    state.loggingLevelIDE = levelID
-    childDevices.each {
-        try {
-            it.updateSetting("configLoggingLevelIDE", level)
-            // it.updateSetting("configLoggingLevelIDE", levelID)
-        }
-        catch (e) {
-            logger("Error setting Logging on ${it} - ${e}","trace")
-        }
-    }
-    logger("Logging set to level ${level}(${settings.loggingLevelIDE})","info")
-}
-
 def refresh() {
     sendGet("/state/temps", parseTemps)
     sendGet("/config/all", parseConfigAll)
@@ -469,9 +446,10 @@ def parseConfigAll(response, data=null) {
     if (response.getStatus() == 200) {
         def json = response.getJson()
         def date = new Date()
-        sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}"]])
         def lastUpdated = json.lastUpdated
-        sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, descriptionText:"Last updated time is ${lastUpdated}"]])
+        sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, 
+                    descriptionText:"Last updated time is ${lastUpdated}", 
+                    isStateChange: false]])
 	}
 }
 
@@ -537,15 +515,22 @@ def parseTempsBodies(bodies) {
 // inbound PARSE
 // **********************************************
 def parse(raw) {
-    logger( "Parsing Raw = ${raw}","trace")
+    //logger( "Parsing Raw = ${raw}","trace")
     def msg = parseLanMessage(raw)
-    logger( "Parse msg: ${msg}","debug")
-    logger( "HEADERS: ${msg.headers}","trace")
+    //logger( "Parse msg: ${msg}","debug")
+    //logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
-    logger("Parse event of type: ${type}","info")
-    logger( "Parse JSON payload: ${msg.json}","debug")
+    //logger("Parse event of type: ${type}","debug")
+    //logger( "Parse JSON payload: ${msg.json}","debug")
     Date date = new Date()
-    sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}", descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm:ss')}"]])
+    def lastUpdate = currentValue('lastUpdated')
+    def logLevel = lookup[state.loggingLevelIDE ? state.loggingLevelIDE : 'Debug']
+    if (logLevel >= 4) {
+      sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}", 
+                descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}",
+               isStateChange: false
+               ]])
+    }
     if (msg.json) {
         switch(type) {
             case "temps":

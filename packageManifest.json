@@ -23,7 +23,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller.src/pool-controller.groovy",
       "required": true,
-      "version": "1.12"
+      "version": "1.14"
     },
     {
       "id": "d2c5d427-6e64-4746-9b4c-c4d1dc8348da",
