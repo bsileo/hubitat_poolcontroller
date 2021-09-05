@@ -5,7 +5,7 @@
  *
  *  Author: Brad Sileo
  *
- *  Version: "1.14"
+ *  Version: "1.15"
  *
  */
 
@@ -43,6 +43,23 @@ metadata {
         	],
         	required: false
         )
+        input (
+                name: "updateInterval",
+                title: "Minimum interval between processing updates (seconds)",
+                description: "This will filter all event processing on this device all of its child devices. This may lead to incorrect data as some events, such as temperature update, may not be repeated. It will help reduce load on your hub in the case where there is a lot of traffic from the Pool Controller. Set this to 0 to disable any filters and process all events.",
+                type: "enum",
+                options: [
+                    "0",
+                    "1",
+                    "5",
+                    "10",
+                    "30",
+                    "60"
+                ],
+                defaultValue: "0",
+                displayDuringSetup: true,
+                required: true
+            )
     }
 }
 
@@ -447,8 +464,8 @@ def parseConfigAll(response, data=null) {
         def json = response.getJson()
         def date = new Date()
         def lastUpdated = json.lastUpdated
-        sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated, 
-                    descriptionText:"Last updated time is ${lastUpdated}", 
+        sendEvent([[name:"ConfigControllerLastUpdated", value:lastUpdated,
+                    descriptionText:"Last updated time is ${lastUpdated}",
                     isStateChange: false]])
 	}
 }
@@ -512,6 +529,27 @@ def parseTempsBodies(bodies) {
 }
 
 // **********************************************
+// timeIntervalOK
+// **********************************************
+def timeIntervalOK() {
+    def delta = settings.updateInterval.toInteger()
+    // Is the filter disabled?
+    if (delta == 0) { 
+        return true
+    }
+    def now = new Date().getTime()
+    def lp = state.lastParse ? state.lastParse : 0
+    if (now - lp > delta * 1000) {
+        state.lastParse = now
+        logger("Time interval - true","debug")
+        return true
+    } else {
+        logger("Time interval - false","debug")
+    }
+    return false
+}
+
+// **********************************************
 // inbound PARSE
 // **********************************************
 def parse(raw) {
@@ -521,15 +559,17 @@ def parse(raw) {
     //logger( "HEADERS: ${msg.headers}","trace")
     def type = msg.headers['X-EVENT-TYPE']
     //logger("Parse event of type: ${type}","debug")
-    //logger( "Parse JSON payload: ${msg.json}","debug")            
-    def logLevel = state.loggingLevelIDE    
-    if (logLevel == 'Debug' || logLevel =='Trace') {
-      Date date = new Date()
-      sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}", 
-                descriptionText:"Last updated at ${date.format('MM/dd/yyyy')} ${date.format('HH:mm')}",
-               isStateChange: false
-               ]])
+    //logger( "Parse JSON payload: ${msg.json}","debug")
+    if (! timeIntervalOK()) {
+        logger("Event ignored due to time throtle","debug")
+        return
     }
+    def logLevel = state.loggingLevelIDE
+    Date date = new Date()
+    sendEvent([[name:"LastUpdated", value:"${date.format('MM/dd/yyyy hh:mm a')}",
+            descriptionText:"Last updated at ${date.format('MM/dd/yyyy hh:mm a')}",
+            isStateChange: false
+            ]])
     if (msg.json) {
         switch(type) {
             case "temps":
@@ -565,7 +605,7 @@ def parse(raw) {
                 parseDevice(msg.json, 'intellichem')
                 break
             default:
-                logger( "No handler for incoming event type '${type}'","warn")
+                logger("No handler for incoming event type '${type}'","warn")
                 break
        }
     }

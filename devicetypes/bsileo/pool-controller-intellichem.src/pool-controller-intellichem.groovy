@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 1.3
+ *  version: 1.5
  */
 metadata {
 	definition (name: "Pool Controller Intellichem", namespace: "bsileo", author: "Brad Sileo" )
@@ -40,26 +40,39 @@ metadata {
 		command "refresh"
 
 	}
-    preferences {
-         section("General:") {
+    preferences { 
             input (
-        	name: "configLoggingLevelIDE",
-        	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
-        	type: "enum",
-        	options: [
-        	    "None",
-        	    "Error",
-        	    "Warning",
-        	    "Info",
-        	    "Debug",
-        	    "Trace"
-        	],
-        	defaultValue: "Info",
-            displayDuringSetup: true,
-        	required: false
+                name: "configLoggingLevelIDE",
+                title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
+                type: "enum",
+                options: [
+                    "None",
+                    "Error",
+                    "Warning",
+                    "Info",
+                    "Debug",
+                    "Trace"
+                ],
+                defaultValue: "Info",
+                displayDuringSetup: true,
+                required: false
+            )
+            input (
+                name: "updateInterval",
+                title: "Minimum interval between processing updates (seconds)",
+                type: "enum",
+                options: [
+                    "0",
+                    "1",
+                    "10",
+                    "30",
+                    "60"
+                ],
+                defaultValue: "10",
+                displayDuringSetup: true,
+                required: true
             )
         }
-    }
 }
 
 def installed() {
@@ -93,40 +106,63 @@ def parseRefresh (response, data=null) {
      }
 }
 
+// **********************************************
+// timeIntervalOK
+// **********************************************
+def timeIntervalOK() {
+    def delta = settings.updateInterval.toInteger()
+    // Is the filter disabled?
+    if (delta == 0) { 
+        return true
+    }
+    def now = new Date().getTime()
+    def lp = state.lastParse ? state.lastParse : 0
+    if (now - lp > delta * 1000) {
+        state.lastParse = now
+        logger("Time interval - true","debug")
+        return true
+    } else {
+        logger("Time interval - false","debug")
+    }
+    return false
+}
+
 // Process the results from /state/chemController/{id}
 def parse(section) {
-    section.each { key, v ->
-        switch (key) {
-            case "ph":
+    if (timeIntervalOK()) {
+        section.each { key, v ->
+            switch (key) {
+                case "ph":
                 parsePh(v)
                 break
-            case "orp":
+                case "orp":
                 parseORP(v)
                 break
-            case "alarms":
+                case "alarms":
                 parseAlarms(v)
                 break
-            case "warnings":
+                case "warnings":
                 parseWarnings(v)
                 break
-            case "status":
+                case "status":
                 sendEvent(name: "status", value: v.name)
                 break
-            case "lastComm":
+                case "lastComm":
                 sendEvent(name: "lastComm", value: v)
                 break
-            case "alkalinity":
+                case "alkalinity":
                 sendEvent(name: k, value: v)
                 break
-            case "calciumHardness":
+                case "calciumHardness":
                 sendEvent(name: k, value: v)
                 break
-            case "cyanuricAcid":
+                case "cyanuricAcid":
                 sendEvent(name: k, value: v)
                 break
-            default:
-                //logger( "No handler for incoming Intellichem data element '${key}'","trace")
-                break
+                default:
+                    //logger( "No handler for incoming Intellichem data element '${key}'","trace")
+                    break
+            }
         }
     }
     return

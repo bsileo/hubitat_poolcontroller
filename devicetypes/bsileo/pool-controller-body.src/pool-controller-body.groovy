@@ -6,7 +6,7 @@
  *  Author: Brad Sileo
  *
  *
- *  version: 1.2
+ *  version: 1.5
  */
 
 metadata {
@@ -52,25 +52,39 @@ metadata {
        }
     }
 
-	preferences {
-         section("General:") {
+	preferences {         
             input (
-        	name: "configLoggingLevelIDE",
-        	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
-        	type: "enum",
-        	options: [
-        	    "None",
-        	    "Error",
-        	    "Warning",
-        	    "Info",
-        	    "Debug",
-        	    "Trace"
-        	],
-        	defaultValue: "Info",
-            displayDuringSetup: true,
-        	required: false
+                name: "configLoggingLevelIDE",
+                title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
+                type: "enum",
+                options: [
+                    "None",
+                    "Error",
+                    "Warning",
+                    "Info",
+                    "Debug",
+                    "Trace"
+                ],
+                defaultValue: "Info",
+                displayDuringSetup: true,
+                required: false
             )
-        }
+            input (
+                name: "updateInterval",
+                title: "Minimum interval between processing updates (seconds)",
+                description: "This will filter all event processing on this device. This may lead to incorrect data as some events may not be repeated. It will help reduce load on your hub in the case where there is a lot of traffic from the Pool Controller. Set this to 0 to disable any filters and process all events.",
+                type: "enum",
+                options: [
+                    "0",
+                    "1",
+                    "10",
+                    "30",
+                    "60"
+                ],
+                defaultValue: "10",
+                displayDuringSetup: true,
+                required: true
+            )
     }
 }
 
@@ -118,18 +132,41 @@ def parseBodies(response, data=null) {
     }
 }
 
-def parse(body) {
-    logger("Parse body - ${body}","trace")
-    sendEvent([name: "setPoint", value: body.setPoint, unit:  state.units])
-    if (body.heatMode instanceof java.lang.Integer) {
-        sendEvent([name: "currentHeaterMode", value: getHeatMode(body.heatMode)])
-    } else {
-        sendEvent([name: "currentHeaterMode", value: body.heatMode.desc])
+// **********************************************
+// timeIntervalOK
+// **********************************************
+def timeIntervalOK() {
+    def delta = settings.updateInterval.toInteger()
+    // Is the filter disabled?
+    if (delta == 0) { 
+        return true
     }
-    if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
-    if (body.containsKey('temp')) {
-        sendEvent([name: "waterTemp", value: body.temp.toInteger(), unit: state.units])
-        sendEvent([name: "temperature", value: body.temp.toInteger(), unit: state.units])
+    def now = new Date().getTime()
+    def lp = state.lastParse ? state.lastParse : 0
+    if (now - lp > delta * 1000) {
+        state.lastParse = now
+        logger("Time interval - true","debug")
+        return true
+    } else {
+        logger("Time interval - false","debug")
+    }
+    return false
+}
+
+def parse(body) {
+    if (timeIntervalOK()) {
+        logger("Parse body - ${body}","trace")
+        sendEvent([name: "setPoint", value: body.setPoint, unit:  state.units])
+        if (body.heatMode instanceof java.lang.Integer) {
+            sendEvent([name: "currentHeaterMode", value: getHeatMode(body.heatMode)])
+        } else {
+            sendEvent([name: "currentHeaterMode", value: body.heatMode.desc])
+        }
+        if (body.containsKey('isOn')) { sendEvent([name: "switch", value: body.isOn ? "on" : "off" ]) }
+        if (body.containsKey('temp')) {
+            sendEvent([name: "waterTemp", value: body.temp.toInteger(), unit: state.units])
+            sendEvent([name: "temperature", value: body.temp.toInteger(), unit: state.units])
+        }
     }
 }
 
