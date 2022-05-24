@@ -3,8 +3,8 @@
   "author": "Brad Sileo",
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
-  "dateReleased": "2021-06-30",
-  "releaseNotes": "Added event throttle timing code to several devices to allow user to reduce load on hub",
+  "dateReleased": "2022-05-23",
+  "releaseNotes": "Fixed uPnp schema name to match PoolController",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
