@@ -98,12 +98,12 @@ def deviceDiscovery() {
                         mac:controllerMac,
                         hub:"",
                         ssdpPath:"/device",
-                        ssdpTerm:"urn:schemas-upnp-org:device:PoolController:1",
+                        ssdpTerm:"urn:schemas-tagyoureit-org:device:PoolController:1",
                         name:"",
                         ssdpNTS:"",
                         uuid:"",
                         mode:"",
-                        ssdpUSN:"uuid:806f52f4-1f35-4e33-9299-b827eb3bb77a::urn:schemas-upnp-org:device:PoolController:1"
+                        ssdpUSN:"uuid:806f52f4-1f35-4e33-9299-b827eb3bb77a::urn:schemas-tagyoureit-org:device:PoolController:1"
         				]
         }
 
@@ -359,7 +359,7 @@ def parseConfig(resp) {
 
 
 def USN() {
-	return "urn:schemas-upnp-org:device:PoolController:1"
+	return "urn:schemas-tagyoureit-org:device:PoolController:1"
 }
 
 void ssdpDiscover() {
@@ -393,7 +393,7 @@ def ssdpHandler(evt) {
 	def parsedEvent = parseLanMessage(description)
 	parsedEvent << ["hub":hub]
     //log.debug("SDP Handler - ${parsedEvent}")
- 	if (parsedEvent?.ssdpTerm?.contains("urn:schemas-upnp-org:device:PoolController:1")) {
+ 	if (parsedEvent?.ssdpTerm?.contains("urn:schemas-tagyoureit-org:device:PoolController:1")) {
 		def devices = getDevices()
         String ssdpUSN = parsedEvent.ssdpUSN.toString()
         //log.debug("GET SSDP - found a pool ${ssdpUSN}")
