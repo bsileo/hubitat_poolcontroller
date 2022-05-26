@@ -97,7 +97,7 @@ def deviceDiscovery() {
                         verified:false,
                         mac:controllerMac,
                         hub:"",
-                        ssdpPath:"/device",
+                        ssdpPath:"/upnp.xml",
                         ssdpTerm:"urn:schemas-tagyoureit-org:device:PoolController:1",
                         name:"",
                         ssdpNTS:"",
