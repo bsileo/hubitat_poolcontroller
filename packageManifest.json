@@ -3,8 +3,8 @@
   "author": "Brad Sileo",
   "minimumHEVersion": "2.1.9",
   "documentationLink": "https://github.com/bsileo/hubitat_poolcontroller/blob/master/README.md",
-  "dateReleased": "2022-05-23",
-  "releaseNotes": "Fixed uPnp schema name to match PoolController",
+  "dateReleased": "2022-06-07",
+  "releaseNotes": "Fix access to Heater modes on Body",
   "apps": [
     {
       "id": "b6348912-4325-4bf3-8a72-4e2e6e37669e",
@@ -31,7 +31,7 @@
       "namespace": "bsileo",
       "location": "https://raw.githubusercontent.com/bsileo/hubitat_poolcontroller/master/devicetypes/bsileo/pool-controller-body.src/pool-controller-body.groovy",
       "required": true,
-      "version": "1.5"
+      "version": "1.6"
     },
     {
       "id": "c79e3b5d-52cb-4fec-95d3-6669a3fd2479",
